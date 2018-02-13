@@ -10,6 +10,7 @@ cmake_dependent_option(ENABLE_TrajectoryLib "Enable/disable TrajectoryLib librar
 if(ENABLE_TrajectoryLib)
 
     set(_trayectory_lib_sources ICartesianTrajectory.hpp
+                                IJointTrajectory.hpp
                                 ITrajectory.hpp
                                 KdlTrajectory.cpp
                                 KdlTrajectory.hpp)
