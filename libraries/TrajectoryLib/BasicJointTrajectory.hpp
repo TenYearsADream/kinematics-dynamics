@@ -72,7 +72,7 @@ public:
      *
      * @return true on success, false otherwise
      */
-    virtual bool setDuration(const double duration) = 0;
+    virtual bool setDuration(const double duration);
 
     /**
      * @brief Add a waypoint to the trajectory
