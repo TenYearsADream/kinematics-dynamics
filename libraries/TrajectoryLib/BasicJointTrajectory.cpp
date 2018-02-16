@@ -13,6 +13,7 @@ roboticslab::BasicJointTrajectory::BasicJointTrajectory()
 
 bool roboticslab::BasicJointTrajectory::getDuration(double* duration) const
 {
+    *duration = this->duration;
     return true;
 }
 
