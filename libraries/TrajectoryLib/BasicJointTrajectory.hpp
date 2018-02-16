@@ -132,7 +132,7 @@ private:
 
     double duration;
     bool configuredPath, configuredVelocityProfile;
-
+    std::vector< std::vector< double > > waypoints;
 
 };
 

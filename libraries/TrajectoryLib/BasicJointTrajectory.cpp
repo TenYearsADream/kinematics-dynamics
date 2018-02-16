@@ -9,6 +9,9 @@ const int roboticslab::BasicJointTrajectory::DURATION_NOT_SET = -1;
 // -----------------------------------------------------------------------------
 
 roboticslab::BasicJointTrajectory::BasicJointTrajectory()
+    : duration(DURATION_NOT_SET),
+      configuredPath(false),
+      configuredVelocityProfile(false)
 {}
 
 // -----------------------------------------------------------------------------
@@ -54,6 +57,8 @@ bool roboticslab::BasicJointTrajectory::addWaypoint(const std::vector<double>& w
                          const std::vector<double>& waypointVelocity,
                          const std::vector<double>& waypointAcceleration)
 {
+    waypoints.push_back(waypoint);
+
     return true;
 }
 
