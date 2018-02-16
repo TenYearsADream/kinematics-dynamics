@@ -4,6 +4,8 @@
 
 #include <ColorDebug.hpp>
 
+const int roboticslab::BasicJointTrajectory::DURATION_NOT_SET = -1;
+
 // -----------------------------------------------------------------------------
 
 roboticslab::BasicJointTrajectory::BasicJointTrajectory()
@@ -73,6 +75,24 @@ bool roboticslab::BasicJointTrajectory::configureVelocityProfile(const int veloc
 
 bool roboticslab::BasicJointTrajectory::create()
 {
+    if( DURATION_NOT_SET == duration )
+    {
+        CD_ERROR("Duration not set!\n");
+        return false;
+    }
+    if( ! configuredPath )
+    {
+        CD_ERROR("Path not configured!\n");
+        return false;
+    }
+    if( ! configuredVelocityProfile )
+    {
+        CD_ERROR("Velocity profile not configured!\n");
+        return false;
+    }
+
+
+
     return true;
 }
 

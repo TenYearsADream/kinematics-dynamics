@@ -128,7 +128,11 @@ public:
 
 private:
 
+    static const int DURATION_NOT_SET;
+
     double duration;
+    bool configuredPath, configuredVelocityProfile;
+
 
 };
 
