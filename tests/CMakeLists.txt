@@ -35,6 +35,10 @@ if(ENABLE_tests)
     add_dependencies(testAsibotSolverFromFile COLOR_DEBUG)
     target_link_libraries(testAsibotSolverFromFile YARP::YARP_OS YARP::YARP_dev gtest_main KinematicRepresentationLib)
 
+    add_executable(testBasicJointTrajectory testBasicJointTrajectory.cpp)
+    add_dependencies(testBasicJointTrajectory COLOR_DEBUG)
+    target_link_libraries(testBasicJointTrajectory YARP::YARP_OS YARP::YARP_dev gtest_main TrajectoryLib)
+
     add_executable(testKdlTrajectory testKdlTrajectory.cpp)
     add_dependencies(testKdlTrajectory COLOR_DEBUG)
     target_link_libraries(testKdlTrajectory YARP::YARP_OS YARP::YARP_dev gtest_main TrajectoryLib)
