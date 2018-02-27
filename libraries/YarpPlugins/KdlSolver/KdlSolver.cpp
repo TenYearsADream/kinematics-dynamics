@@ -10,6 +10,32 @@
 
 #include "KinematicRepresentation.hpp"
 
+// ------------------- KdlSolver Related ------------------------------------
+
+roboticslab::KdlSolver::KdlSolver()
+    : impl(0)
+{}
+
+// -----------------------------------------------------------------------------
+
+bool roboticslab::KdlSolver::getMatrixFromProperties(yarp::os::Searchable &options, std::string &tag, yarp::sig::Matrix &H)
+{
+    yarp::os::Bottle *bH=options.find(tag).asList();
+    if (!bH) return false;
+
+    int i=0;
+    int j=0;
+    H.zero();
+    for (int cnt=0; (cnt<bH->size()) && (cnt<H.rows()*H.cols()); cnt++) {
+        H(i,j)=bH->get(cnt).asDouble();
+        if (++j>=H.cols()) {
+            i++;
+            j=0;
+        }
+    }
+    return true;
+}
+
 // ------------------- DeviceDriver Related ------------------------------------
 
 bool roboticslab::KdlSolver::open(yarp::os::Searchable& config)
@@ -45,7 +71,7 @@ bool roboticslab::KdlSolver::open(yarp::os::Searchable& config)
 
     yarp::os::Value gravityValue = fullConfig.check("gravity", defaultGravityValue, "gravity vector (SI units)");
     yarp::os::Bottle *gravityBottle = gravityValue.asList();
-    gravity = KDL::Vector(gravityBottle->get(0).asDouble(),gravityBottle->get(1).asDouble(),gravityBottle->get(2).asDouble());
+    KDL::Vector gravity(gravityBottle->get(0).asDouble(),gravityBottle->get(1).asDouble(),gravityBottle->get(2).asDouble());
     CD_INFO("gravity: %s [%s]\n",gravityBottle->toString().c_str(),defaultGravityBottle->toString().c_str());
 
     //-- H0
@@ -59,6 +85,7 @@ bool roboticslab::KdlSolver::open(yarp::os::Searchable& config)
         ymH0 = defaultYmH0;
     }
 
+    KDL::Chain chain;
     KDL::Vector kdlVec0(ymH0(0,3),ymH0(1,3),ymH0(2,3));
     KDL::Rotation kdlRot0( ymH0(0,0),ymH0(0,1),ymH0(0,2),ymH0(1,0),ymH0(1,1),ymH0(1,2),ymH0(2,0),ymH0(2,1),ymH0(2,2));
     chain.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::None), KDL::Frame(kdlRot0,kdlVec0)));  //-- H0 = Frame(kdlRot0,kdlVec0);
@@ -166,6 +193,8 @@ bool roboticslab::KdlSolver::open(yarp::os::Searchable& config)
     CD_INFO("Chain number of segments (post- H0 and HN): %d\n",chain.getNrOfSegments());
     CD_INFO("Chain number of joints (post- H0 and HN): %d\n",chain.getNrOfJoints());
 
+    KDL::JntArray qMin, qMax;
+
     qMax.resize(chain.getNrOfJoints());
     qMin.resize(chain.getNrOfJoints());
 
@@ -204,58 +233,98 @@ bool roboticslab::KdlSolver::open(yarp::os::Searchable& config)
     }
 
     //-- Precision and max iterations for IK solver.
-    eps = fullConfig.check("eps", yarp::os::Value(DEFAULT_EPS), "IK solver precision (meters)").asDouble();
-    maxIter = fullConfig.check("maxIter", yarp::os::Value(DEFAULT_MAXITER), "maximum number of iterations").asInt();
+    double eps = fullConfig.check("eps", yarp::os::Value(DEFAULT_EPS), "IK solver precision (meters)").asDouble();
+    int maxIter = fullConfig.check("maxIter", yarp::os::Value(DEFAULT_MAXITER), "maximum number of iterations").asInt();
 
-    originalChain = chain;  // We have: Chain& operator = (const Chain& arg);
+    impl = new KdlSolverImpl(chain, gravity, qMin, qMax, eps, maxIter);
 
     return true;
 }
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::KdlSolver::close() {
-    return true;
-}
-
-// -----------------------------------------------------------------------------
-
-bool roboticslab::KdlSolver::getMatrixFromProperties(yarp::os::Searchable &options, std::string &tag, yarp::sig::Matrix &H) {
-
-    yarp::os::Bottle *bH=options.find(tag).asList();
-    if (!bH) return false;
-
-    int i=0;
-    int j=0;
-    H.zero();
-    for (int cnt=0; (cnt<bH->size()) && (cnt<H.rows()*H.cols()); cnt++) {
-        H(i,j)=bH->get(cnt).asDouble();
-        if (++j>=H.cols()) {
-            i++;
-            j=0;
-        }
+bool roboticslab::KdlSolver::close()
+{
+    if (impl != 0)
+    {
+        delete impl;
+        impl = 0;
     }
+
     return true;
 }
 
-// -----------------------------------------------------------------------------
+// ------------------- ICartesianSolver Related ------------------------------------
 
-KDL::Chain roboticslab::KdlSolver::getChain() const
+bool roboticslab::KdlSolver::getNumJoints(int* numJoints)
 {
-    KDL::Chain localChain;
-    mutex.wait();
-    localChain = chain;
-    mutex.post();
-    return localChain;
+    return impl->getNumJoints(numJoints);
 }
 
 // -----------------------------------------------------------------------------
 
-void roboticslab::KdlSolver::setChain(const KDL::Chain & chain)
+bool roboticslab::KdlSolver::appendLink(const std::vector<double>& x)
 {
-    mutex.wait();
-    this->chain = chain;
-    mutex.post();
+    return impl->appendLink(x);
+}
+
+// -----------------------------------------------------------------------------
+
+bool roboticslab::KdlSolver::restoreOriginalChain()
+{
+    return impl->restoreOriginalChain();
+}
+
+// -----------------------------------------------------------------------------
+
+bool roboticslab::KdlSolver::changeOrigin(const std::vector<double> &x_old_obj, const std::vector<double> &x_new_old,
+        std::vector<double> &x_new_obj)
+{
+    return impl->changeOrigin(x_old_obj, x_new_old, x_new_obj);
+}
+
+// -----------------------------------------------------------------------------
+
+bool roboticslab::KdlSolver::fwdKin(const std::vector<double> &q, std::vector<double> &x)
+{
+    return impl->fwdKin(q, x);
+}
+
+// -----------------------------------------------------------------------------
+
+bool roboticslab::KdlSolver::poseDiff(const std::vector<double> &xLhs, const std::vector<double> &xRhs, std::vector<double> &xOut)
+{
+    return impl->poseDiff(xLhs, xRhs, xOut);
+}
+
+// -----------------------------------------------------------------------------
+
+bool roboticslab::KdlSolver::invKin(const std::vector<double> &xd, const std::vector<double> &qGuess, std::vector<double> &q,
+        const reference_frame frame)
+{
+    return impl->invKin(xd, qGuess, q, frame);
+}
+
+// -----------------------------------------------------------------------------
+
+bool roboticslab::KdlSolver::diffInvKin(const std::vector<double> &q, const std::vector<double> &xdot, std::vector<double> &qdot,
+        const reference_frame frame)
+{
+    return impl->diffInvKin(q, xdot, qdot, frame);
+}
+
+// -----------------------------------------------------------------------------
+
+bool roboticslab::KdlSolver::invDyn(const std::vector<double> &q,std::vector<double> &t)
+{
+    return impl->invDyn(q, t);
+}
+
+// -----------------------------------------------------------------------------
+
+bool roboticslab::KdlSolver::invDyn(const std::vector<double> &q, const std::vector<double> &qdot, const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t)
+{
+    return impl->invDyn(q, qdot, qdotdot, fexts, t);
 }
 
 // -----------------------------------------------------------------------------

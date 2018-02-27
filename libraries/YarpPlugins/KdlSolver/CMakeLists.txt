@@ -26,8 +26,8 @@ if(NOT SKIP_KdlSolver)
                         ${orocos_kdl_INCLUDE_DIRS})
 
     yarp_add_plugin(KdlSolver KdlSolver.hpp
-                              DeviceDriverImpl.cpp
-                              ICartesianSolverImpl.cpp)
+                              KdlSolver.cpp
+                              KdlSolverImpl.cpp)
 
     add_dependencies(KdlSolver COLOR_DEBUG)
 

@@ -20,9 +20,22 @@
 #include "KdlVectorConverter.hpp"
 #include "KinematicRepresentation.hpp"
 
-// -----------------------------------------------------------------------------
+// ------------------- KdlSolverImpl Related ------------------------------------
 
-bool roboticslab::KdlSolver::getNumJoints(int* numJoints)
+roboticslab::KdlSolverImpl::KdlSolverImpl(const KDL::Chain & chain, const KDL::Vector & gravity, const KDL::JntArray & qMin, const KDL::JntArray & qMax, double eps, int maxIter)
+    : chain(chain),
+      originalChain(chain),
+      gravity(gravity),
+      qMin(qMin),
+      qMax(qMax),
+      eps(eps),
+      maxIter(maxIter)
+{}
+
+
+// ------------------- ICartesianSolver Related ------------------------------------
+
+bool roboticslab::KdlSolverImpl::getNumJoints(int* numJoints)
 {
     *numJoints = getChain().getNrOfJoints();
     return true;
@@ -30,7 +43,7 @@ bool roboticslab::KdlSolver::getNumJoints(int* numJoints)
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::KdlSolver::appendLink(const std::vector<double>& x)
+bool roboticslab::KdlSolverImpl::appendLink(const std::vector<double>& x)
 {
     KDL::Frame frameX = KdlVectorConverter::vectorToFrame(x);
 
@@ -43,7 +56,7 @@ bool roboticslab::KdlSolver::appendLink(const std::vector<double>& x)
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::KdlSolver::restoreOriginalChain()
+bool roboticslab::KdlSolverImpl::restoreOriginalChain()
 {
     setChain(originalChain);
     return true;
@@ -51,7 +64,7 @@ bool roboticslab::KdlSolver::restoreOriginalChain()
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::KdlSolver::changeOrigin(const std::vector<double> &x_old_obj, const std::vector<double> &x_new_old,
+bool roboticslab::KdlSolverImpl::changeOrigin(const std::vector<double> &x_old_obj, const std::vector<double> &x_new_old,
         std::vector<double> &x_new_obj)
 {
     KDL::Frame H_old_obj = KdlVectorConverter::vectorToFrame(x_old_obj);
@@ -65,7 +78,7 @@ bool roboticslab::KdlSolver::changeOrigin(const std::vector<double> &x_old_obj, 
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::KdlSolver::fwdKin(const std::vector<double> &q, std::vector<double> &x)
+bool roboticslab::KdlSolverImpl::fwdKin(const std::vector<double> &q, std::vector<double> &x)
 {
     const KDL::Chain & chain = getChain();
     KDL::JntArray qInRad(chain.getNrOfJoints());
@@ -87,7 +100,7 @@ bool roboticslab::KdlSolver::fwdKin(const std::vector<double> &q, std::vector<do
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::KdlSolver::poseDiff(const std::vector<double> &xLhs, const std::vector<double> &xRhs, std::vector<double> &xOut)
+bool roboticslab::KdlSolverImpl::poseDiff(const std::vector<double> &xLhs, const std::vector<double> &xRhs, std::vector<double> &xOut)
 {
     KDL::Frame fLhs = KdlVectorConverter::vectorToFrame(xLhs);
     KDL::Frame fRhs = KdlVectorConverter::vectorToFrame(xRhs);
@@ -100,7 +113,7 @@ bool roboticslab::KdlSolver::poseDiff(const std::vector<double> &xLhs, const std
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::KdlSolver::invKin(const std::vector<double> &xd, const std::vector<double> &qGuess, std::vector<double> &q,
+bool roboticslab::KdlSolverImpl::invKin(const std::vector<double> &xd, const std::vector<double> &qGuess, std::vector<double> &q,
         const reference_frame frame)
 {
     KDL::Frame frameXd = KdlVectorConverter::vectorToFrame(xd);
@@ -172,7 +185,7 @@ bool roboticslab::KdlSolver::invKin(const std::vector<double> &xd, const std::ve
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::KdlSolver::diffInvKin(const std::vector<double> &q, const std::vector<double> &xdot, std::vector<double> &qdot,
+bool roboticslab::KdlSolverImpl::diffInvKin(const std::vector<double> &q, const std::vector<double> &xdot, std::vector<double> &qdot,
         const reference_frame frame)
 {
     const KDL::Chain & chain = getChain();
@@ -228,7 +241,7 @@ bool roboticslab::KdlSolver::diffInvKin(const std::vector<double> &q, const std:
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::KdlSolver::invDyn(const std::vector<double> &q,std::vector<double> &t)
+bool roboticslab::KdlSolverImpl::invDyn(const std::vector<double> &q,std::vector<double> &t)
 {
     const KDL::Chain & chain = getChain();
     KDL::JntArray qInRad(chain.getNrOfJoints());
@@ -270,7 +283,7 @@ bool roboticslab::KdlSolver::invDyn(const std::vector<double> &q,std::vector<dou
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::KdlSolver::invDyn(const std::vector<double> &q,const std::vector<double> &qdot,const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t)
+bool roboticslab::KdlSolverImpl::invDyn(const std::vector<double> &q,const std::vector<double> &qdot,const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t)
 {
     const KDL::Chain & chain = getChain();
     KDL::JntArray qInRad(chain.getNrOfJoints());
@@ -328,6 +341,26 @@ bool roboticslab::KdlSolver::invDyn(const std::vector<double> &q,const std::vect
     }
 
     return true;
+}
+
+// -----------------------------------------------------------------------------
+
+KDL::Chain roboticslab::KdlSolverImpl::getChain() const
+{
+    KDL::Chain localChain;
+    mutex.wait();
+    localChain = chain;
+    mutex.post();
+    return localChain;
+}
+
+// -----------------------------------------------------------------------------
+
+void roboticslab::KdlSolverImpl::setChain(const KDL::Chain & chain)
+{
+    mutex.wait();
+    this->chain = chain;
+    mutex.post();
 }
 
 // -----------------------------------------------------------------------------
