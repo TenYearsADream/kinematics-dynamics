@@ -27,6 +27,7 @@ if(NOT SKIP_KdlSolver)
 
     yarp_add_plugin(KdlSolver KdlSolver.hpp
                               KdlSolver.cpp
+                              KdlSolverImpl.hpp
                               KdlSolverImpl.cpp)
 
     add_dependencies(KdlSolver COLOR_DEBUG)

@@ -2,6 +2,15 @@
 
 #include "KdlSolver.hpp"
 
+#include <yarp/os/Bottle.h>
+#include <yarp/os/Property.h>
+#include <yarp/os/ResourceFinder.h>
+#include <yarp/os/Value.h>
+#include <yarp/sig/Matrix.h>
+
+#include <kdl/frames.hpp>
+#include <kdl/chain.hpp>
+#include <kdl/jntarray.hpp>
 #include <kdl/segment.hpp>
 #include <kdl/rigidbodyinertia.hpp>
 #include <kdl/rotationalinertia.hpp>
@@ -9,6 +18,8 @@
 #include <ColorDebug.hpp>
 
 #include "KinematicRepresentation.hpp"
+
+#include "KdlSolverImpl.hpp"
 
 // ------------------- KdlSolver Related ------------------------------------
 

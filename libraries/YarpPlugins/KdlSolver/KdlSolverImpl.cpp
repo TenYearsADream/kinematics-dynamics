@@ -1,6 +1,6 @@
 // -*- mode:C++; tab-width:4; c-basic-offset:4; indent-tabs-mode:nil -*-
 
-#include "KdlSolver.hpp"
+#include "KdlSolverImpl.hpp"
 
 #include <kdl/segment.hpp>
 #include <kdl/chainfksolverpos_recursive.hpp>
@@ -283,7 +283,7 @@ bool roboticslab::KdlSolverImpl::invDyn(const std::vector<double> &q,std::vector
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::KdlSolverImpl::invDyn(const std::vector<double> &q,const std::vector<double> &qdot,const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t)
+bool roboticslab::KdlSolverImpl::invDyn(const std::vector<double> &q, const std::vector<double> &qdot, const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t)
 {
     const KDL::Chain & chain = getChain();
     KDL::JntArray qInRad(chain.getNrOfJoints());

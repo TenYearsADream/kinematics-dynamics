@@ -5,14 +5,9 @@
 
 #include <string>
 
-#include <yarp/os/all.h>
-#include <yarp/dev/Drivers.h>
-#include <yarp/dev/PolyDriver.h>
-#include <yarp/sig/all.h>
-
-#include <kdl/frames.hpp>
-#include <kdl/chain.hpp>
-#include <kdl/jntarray.hpp>
+#include <yarp/os/Searchable.h>
+#include <yarp/dev/DeviceDriver.h>
+#include <yarp/sig/Matrix.h>
 
 #include "ICartesianSolver.h"
 
@@ -79,7 +74,7 @@ public:
     virtual bool invDyn(const std::vector<double> &q, std::vector<double> &t);
 
     // Perform inverse dynamics.
-    virtual bool invDyn(const std::vector<double> &q,const std::vector<double> &qdot,const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t);
+    virtual bool invDyn(const std::vector<double> &q, const std::vector<double> &qdot, const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t);
 
     // -------- DeviceDriver declarations --------
 
@@ -109,56 +104,6 @@ private:
     bool getMatrixFromProperties(yarp::os::Searchable &options, std::string &tag, yarp::sig::Matrix &H);
 
     KdlSolverImpl * impl;
-};
-
-/**
- * @ingroup KdlSolver
- * @brief The KdlSolverImpl class implements ICartesianSolver.
- */
-class KdlSolverImpl : public ICartesianSolver
-{
-public:
-
-    KdlSolverImpl(const KDL::Chain & chain, const KDL::Vector & gravity, const KDL::JntArray & qMin, const KDL::JntArray & qMax, double eps, int maxIter);
-
-    virtual bool getNumJoints(int* numJoints);
-    virtual bool appendLink(const std::vector<double>& x);
-    virtual bool restoreOriginalChain();
-    virtual bool changeOrigin(const std::vector<double> &x_old_obj, const std::vector<double> &x_new_old, std::vector<double> &x_new_obj);
-    virtual bool fwdKin(const std::vector<double> &q, std::vector<double> &x);
-    virtual bool poseDiff(const std::vector<double> &xLhs, const std::vector<double> &xRhs, std::vector<double> &xOut);
-    virtual bool invKin(const std::vector<double> &xd, const std::vector<double> &qGuess, std::vector<double> &q, const reference_frame frame);
-    virtual bool diffInvKin(const std::vector<double> &q, const std::vector<double> &xdot, std::vector<double> &qdot, const reference_frame frame);
-    virtual bool invDyn(const std::vector<double> &q, std::vector<double> &t);
-    virtual bool invDyn(const std::vector<double> &q,const std::vector<double> &qdot,const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t);
-
-private:
-
-    KDL::Chain getChain() const;
-    void setChain(const KDL::Chain & chain);
-
-    mutable yarp::os::Semaphore mutex;
-
-    /** The chain. **/
-    KDL::Chain chain;
-
-    /** To store a copy of the original chain. **/
-    KDL::Chain originalChain;
-
-    /** Define used gravity for the chain, important to think of DH. **/
-    KDL::Vector gravity;
-
-    /** Minimum joint limits. **/
-    KDL::JntArray qMin;
-
-    /** Maximum joint limits. **/
-    KDL::JntArray qMax;
-
-    /** Precision value used by the IK solver. **/
-    double eps;
-
-    /** Maximum number of iterations to calculate inverse kinematics. **/
-    unsigned int maxIter;
 };
 
 }  // namespace roboticslab
