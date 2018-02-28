@@ -444,15 +444,37 @@ bool roboticslab::KdlSolver::invKin(const std::vector<double> &xd, const std::ve
 bool roboticslab::KdlSolver::diffInvKin(const std::vector<double> &q, const std::vector<double> &xdot, std::vector<double> &qdot,
         const reference_frame frame)
 {
-    // FIXME:encode velocity
-    return impl->diffInvKin(q, xdot, qdot, frame);
+    if (orient == KinRepresentation::AXIS_ANGLE_SCALED)
+    {
+        return impl->diffInvKin(q, xdot, qdot, frame);
+    }
+    else
+    {
+        std::vector<double> x, xdotOrient;
+
+        if (!impl->fwdKin(q, x))
+        {
+            CD_ERROR("fwdKin failed.\n");
+            return false;
+        }
+
+        KinRepresentation::encodeVelocity(x, xdot, xdotOrient, KinRepresentation::CARTESIAN, orient);
+
+        return impl->diffInvKin(q, xdotOrient, qdot, frame);
+    }
 }
 
 // -----------------------------------------------------------------------------
 
 bool roboticslab::KdlSolver::invDyn(const std::vector<double> &q, std::vector<double> &t)
 {
-    // FIXME:encode acceleration
+    if (orient != KinRepresentation::AXIS_ANGLE_SCALED)
+    {
+
+        CD_ERROR("Unsupported angle representation.\n");
+        return false;
+    }
+
     return impl->invDyn(q, t);
 }
 
@@ -460,7 +482,13 @@ bool roboticslab::KdlSolver::invDyn(const std::vector<double> &q, std::vector<do
 
 bool roboticslab::KdlSolver::invDyn(const std::vector<double> &q, const std::vector<double> &qdot, const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t)
 {
-    // FIXME:encode acceleration
+    if (orient != KinRepresentation::AXIS_ANGLE_SCALED)
+    {
+
+        CD_ERROR("Unsupported angle representation.\n");
+        return false;
+    }
+
     return impl->invDyn(q, qdot, qdotdot, fexts, t);
 }
 
