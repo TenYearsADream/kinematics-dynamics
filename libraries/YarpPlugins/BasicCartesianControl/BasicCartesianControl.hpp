@@ -19,6 +19,7 @@
 #define DEFAULT_SOLVER "KdlSolver"
 #define DEFAULT_ROBOT "remote_controlboard"
 #define DEFAULT_INIT_STATE VOCAB_CC_NOT_CONTROLLING
+#define DEFAULT_ANGLE_REPR "axisAngleScaled"
 #define DEFAULT_GAIN 0.05
 #define DEFAULT_QDOT_LIMIT 10.0
 #define DEFAULT_DURATION 10.0

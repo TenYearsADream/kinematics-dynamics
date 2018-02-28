@@ -97,6 +97,7 @@ bool TransCoords::configure(yarp::os::ResourceFinder &rf)
         solverOptions.put("device", solverStr);
         solverOptions.put("mins", yarp::os::Value::makeList(qMin.toString().c_str()));
         solverOptions.put("maxs", yarp::os::Value::makeList(qMax.toString().c_str()));
+        solverOptions.put("maxs", "axisAngleScaled");
 
         if (!solverDevice.open(solverOptions))
         {

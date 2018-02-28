@@ -83,11 +83,14 @@ bool roboticslab::BasicCartesianControl::open(yarp::os::Searchable& config) {
         CD_INFO("Joint %d limits: [%f,%f]\n",joint,min,max);
     }
 
+    std::string angleRepr = config.check("angleRepr", yarp::os::Value(DEFAULT_ANGLE_REPR), "angle representation").asString();
+
     yarp::os::Property solverOptions;
     solverOptions.fromString( config.toString() );
     solverOptions.put("device",solverStr);
     solverOptions.put("mins", yarp::os::Value::makeList(qMin.toString().c_str()));
     solverOptions.put("maxs", yarp::os::Value::makeList(qMax.toString().c_str()));
+    solverOptions.put("angleRepr", angleRepr.c_str());
     solverOptions.setMonitor(config.getMonitor(), solverStr.c_str());
 
     solverDevice.open(solverOptions);

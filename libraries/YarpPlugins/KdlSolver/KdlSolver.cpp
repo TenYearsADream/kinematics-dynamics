@@ -17,14 +17,13 @@
 
 #include <ColorDebug.hpp>
 
-#include "KinematicRepresentation.hpp"
-
 #include "KdlSolverImpl.hpp"
 
 // ------------------- KdlSolver Related ------------------------------------
 
 roboticslab::KdlSolver::KdlSolver()
-    : impl(0)
+    : impl(0),
+      orient(KinRepresentation::AXIS_ANGLE_SCALED)
 {}
 
 // -----------------------------------------------------------------------------
@@ -78,6 +77,14 @@ bool roboticslab::KdlSolver::open(yarp::os::Searchable& config)
     fullConfig.setMonitor(config.getMonitor(), "KdlSolver");
 
     CD_DEBUG("fullConfig: %s.\n", fullConfig.toString().c_str());
+
+    std::string angleReprStr = fullConfig.check("angleRepr", yarp::os::Value(""), "angle representation").asString();
+
+    if (!KinRepresentation::parseEnumerator(angleReprStr, &orient))
+    {
+        CD_ERROR("Empty or unknown angle representation option: %s\n", angleReprStr.c_str());
+        return false;
+    }
 
     //-- numlinks
     int numLinks = fullConfig.check("numLinks", yarp::os::Value(DEFAULT_NUM_LINKS), "chain number of segments").asInt();
@@ -329,7 +336,16 @@ bool roboticslab::KdlSolver::getNumJoints(int* numJoints)
 
 bool roboticslab::KdlSolver::appendLink(const std::vector<double>& x)
 {
-    return impl->appendLink(x);
+    if (orient == KinRepresentation::AXIS_ANGLE_SCALED)
+    {
+        return impl->appendLink(x);
+    }
+    else
+    {
+        std::vector<double> xOrient;
+        KinRepresentation::encodePose(x, xOrient, KinRepresentation::CARTESIAN, orient);
+        return impl->appendLink(xOrient);
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -344,21 +360,66 @@ bool roboticslab::KdlSolver::restoreOriginalChain()
 bool roboticslab::KdlSolver::changeOrigin(const std::vector<double> &x_old_obj, const std::vector<double> &x_new_old,
         std::vector<double> &x_new_obj)
 {
-    return impl->changeOrigin(x_old_obj, x_new_old, x_new_obj);
+    if (orient == KinRepresentation::AXIS_ANGLE_SCALED)
+    {
+        return impl->changeOrigin(x_old_obj, x_new_old, x_new_obj);
+    }
+    else
+    {
+        std::vector<double> x_old_obj_orient, x_new_old_orient;
+
+        KinRepresentation::encodePose(x_old_obj, x_old_obj_orient, KinRepresentation::CARTESIAN, orient);
+        KinRepresentation::encodePose(x_new_old, x_new_old_orient, KinRepresentation::CARTESIAN, orient);
+
+        if (!impl->changeOrigin(x_old_obj_orient, x_new_old_orient, x_new_obj))
+        {
+            return false;
+        }
+
+        KinRepresentation::decodePose(x_new_obj, x_new_obj, KinRepresentation::CARTESIAN, orient);
+
+        return true;
+    }
 }
 
 // -----------------------------------------------------------------------------
 
 bool roboticslab::KdlSolver::fwdKin(const std::vector<double> &q, std::vector<double> &x)
 {
-    return impl->fwdKin(q, x);
+    if (!impl->fwdKin(q, x))
+    {
+        return false;
+    }
+
+    KinRepresentation::decodePose(x, x, KinRepresentation::CARTESIAN, orient);
+
+    return true;
 }
 
 // -----------------------------------------------------------------------------
 
 bool roboticslab::KdlSolver::poseDiff(const std::vector<double> &xLhs, const std::vector<double> &xRhs, std::vector<double> &xOut)
 {
-    return impl->poseDiff(xLhs, xRhs, xOut);
+    if (orient == KinRepresentation::AXIS_ANGLE_SCALED)
+    {
+        return impl->poseDiff(xLhs, xRhs, xOut);
+    }
+    else
+    {
+        std::vector<double> xLhsOrient, xRhsOrient;
+
+        KinRepresentation::encodePose(xLhs, xLhsOrient, KinRepresentation::CARTESIAN, orient);
+        KinRepresentation::encodePose(xRhs, xRhsOrient, KinRepresentation::CARTESIAN, orient);
+
+        if (!impl->poseDiff(xLhsOrient, xRhsOrient, xOut))
+        {
+            return false;
+        }
+
+        KinRepresentation::decodePose(xOut, xOut, KinRepresentation::CARTESIAN, orient);
+
+        return true;
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -366,7 +427,16 @@ bool roboticslab::KdlSolver::poseDiff(const std::vector<double> &xLhs, const std
 bool roboticslab::KdlSolver::invKin(const std::vector<double> &xd, const std::vector<double> &qGuess, std::vector<double> &q,
         const reference_frame frame)
 {
-    return impl->invKin(xd, qGuess, q, frame);
+    if (orient == KinRepresentation::AXIS_ANGLE_SCALED)
+    {
+        return impl->invKin(xd, qGuess, q, frame);
+    }
+    else
+    {
+        std::vector<double> xdOrient;
+        KinRepresentation::encodePose(xd, xdOrient, KinRepresentation::CARTESIAN, orient);
+        return impl->invKin(xd, qGuess, q, frame);
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -374,13 +444,15 @@ bool roboticslab::KdlSolver::invKin(const std::vector<double> &xd, const std::ve
 bool roboticslab::KdlSolver::diffInvKin(const std::vector<double> &q, const std::vector<double> &xdot, std::vector<double> &qdot,
         const reference_frame frame)
 {
+    // FIXME:encode velocity
     return impl->diffInvKin(q, xdot, qdot, frame);
 }
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::KdlSolver::invDyn(const std::vector<double> &q,std::vector<double> &t)
+bool roboticslab::KdlSolver::invDyn(const std::vector<double> &q, std::vector<double> &t)
 {
+    // FIXME:encode acceleration
     return impl->invDyn(q, t);
 }
 
@@ -388,6 +460,7 @@ bool roboticslab::KdlSolver::invDyn(const std::vector<double> &q,std::vector<dou
 
 bool roboticslab::KdlSolver::invDyn(const std::vector<double> &q, const std::vector<double> &qdot, const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t)
 {
+    // FIXME:encode acceleration
     return impl->invDyn(q, qdot, qdotdot, fexts, t);
 }
 

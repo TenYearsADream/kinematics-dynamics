@@ -10,6 +10,7 @@
 #include <yarp/sig/Matrix.h>
 
 #include "ICartesianSolver.h"
+#include "KinematicRepresentation.hpp"
 
 #define DEFAULT_KINEMATICS "none.ini"  // string
 #define DEFAULT_NUM_LINKS 1  // int
@@ -104,6 +105,8 @@ private:
     bool getMatrixFromProperties(yarp::os::Searchable &options, std::string &tag, yarp::sig::Matrix &H);
 
     KdlSolverImpl * impl;
+
+    KinRepresentation::orientation_system orient;
 };
 
 }  // namespace roboticslab
