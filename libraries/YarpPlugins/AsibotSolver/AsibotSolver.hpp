@@ -6,6 +6,7 @@
 #include <yarp/dev/DeviceDriver.h>
 
 #include "ICartesianSolver.h"
+#include "KinematicRepresentation.hpp"
 
 #define NUM_MOTORS 5
 
@@ -96,6 +97,8 @@ public:
 private:
 
     AsibotSolverImpl * impl;
+
+    KinRepresentation::orientation_system orient;
 };
 
 }  // namespace roboticslab

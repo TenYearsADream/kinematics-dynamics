@@ -391,7 +391,10 @@ bool roboticslab::KdlSolver::fwdKin(const std::vector<double> &q, std::vector<do
         return false;
     }
 
-    KinRepresentation::decodePose(x, x, KinRepresentation::CARTESIAN, orient);
+    if (orient != KinRepresentation::AXIS_ANGLE_SCALED)
+    {
+        KinRepresentation::decodePose(x, x, KinRepresentation::CARTESIAN, orient);
+    }
 
     return true;
 }
