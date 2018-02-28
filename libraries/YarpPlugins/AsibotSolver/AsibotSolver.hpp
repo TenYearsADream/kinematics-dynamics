@@ -3,15 +3,8 @@
 #ifndef __ASIBOT_SOLVER_HPP__
 #define __ASIBOT_SOLVER_HPP__
 
-#include <string>
-#include <vector>
-
-#include <yarp/os/Searchable.h>
-#include <yarp/os/Semaphore.h>
 #include <yarp/dev/DeviceDriver.h>
-#include <yarp/sig/Matrix.h>
 
-#include "AsibotConfiguration.hpp"
 #include "ICartesianSolver.h"
 
 #define NUM_MOTORS 5
@@ -33,21 +26,19 @@ namespace roboticslab
  * @brief Contains roboticslab::AsibotSolver.
  */
 
+class AsibotSolverImpl;
+
 /**
  * @ingroup AsibotSolver
- * @brief The AsibotSolver implements ICartesianSolver.
+ * @brief Proxy class for the real implementation, AsibotSolverImpl.
  */
-
 class AsibotSolver : public yarp::dev::DeviceDriver, public ICartesianSolver
 {
 public:
 
-    AsibotSolver()
-        : A0(DEFAULT_A0), A1(DEFAULT_A1), A2(DEFAULT_A2), A3(DEFAULT_A3),
-          confFactory(NULL)
-    {}
+    AsibotSolver();
 
-// -------- ICartesianSolver declarations. Implementation in ICartesianSolverImpl.cpp --------
+    // -------- ICartesianSolver declarations --------
 
     // Get number of joints for which the solver has been configured.
     virtual bool getNumJoints(int* numJoints);
@@ -59,9 +50,7 @@ public:
     virtual bool restoreOriginalChain();
 
     // Change reference frame.
-    virtual bool changeOrigin(const std::vector<double> &x_old_obj,
-                              const std::vector<double> &x_new_old,
-                              std::vector<double> &x_new_obj);
+    virtual bool changeOrigin(const std::vector<double> &x_old_obj, const std::vector<double> &x_new_old, std::vector<double> &x_new_obj);
 
     // Perform forward kinematics.
     virtual bool fwdKin(const std::vector<double> &q, std::vector<double> &x);
@@ -79,9 +68,9 @@ public:
     virtual bool invDyn(const std::vector<double> &q, std::vector<double> &t);
 
     // Perform inverse dynamics.
-    virtual bool invDyn(const std::vector<double> &q,const std::vector<double> &qdot,const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t);
+    virtual bool invDyn(const std::vector<double> &q, const std::vector<double> &qdot, const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t);
 
-// -------- DeviceDriver declarations. Implementation in IDeviceImpl.cpp --------
+    // -------- DeviceDriver declarations --------
 
     /**
     * Open the DeviceDriver.
@@ -106,28 +95,7 @@ public:
 
 private:
 
-    struct AsibotTcpFrame
-    {
-        bool hasFrame;
-        yarp::sig::Matrix frameTcp;
-    };
-
-    bool buildStrategyFactory(const std::string & strategy);
-
-    AsibotConfiguration * getConfiguration() const;
-
-    AsibotTcpFrame getTcpFrame() const;
-    void setTcpFrame(const AsibotTcpFrame & tcpFrameStruct);
-
-    double A0, A1, A2, A3;  // link lengths
-
-    std::vector<double> qMin, qMax;
-
-    AsibotConfigurationFactory * confFactory;
-
-    AsibotTcpFrame tcpFrameStruct;
-
-    mutable yarp::os::Semaphore mutex;
+    AsibotSolverImpl * impl;
 };
 
 }  // namespace roboticslab

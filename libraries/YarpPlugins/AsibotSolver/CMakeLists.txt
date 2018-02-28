@@ -15,8 +15,8 @@ if(NOT SKIP_AsibotSolver)
 
     yarp_add_plugin(AsibotSolver AsibotSolver.hpp
                                  AsibotSolver.cpp
-                                 DeviceDriverImpl.cpp
-                                 ICartesianSolverImpl.cpp
+                                 AsibotSolverImpl.hpp
+                                 AsibotSolverImpl.cpp
                                  AsibotConfiguration.hpp
                                  AsibotConfiguration.cpp
                                  AsibotConfigurationLeastOverallAngularDisplacement.cpp)

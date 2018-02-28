@@ -1,6 +1,6 @@
 // -*- mode:C++; tab-width:4; c-basic-offset:4; indent-tabs-mode:nil -*-
 
-#include "AsibotSolver.hpp"
+#include "AsibotSolverImpl.hpp"
 
 #include <cmath>
 #include <memory>
@@ -79,9 +79,75 @@ namespace
     }
 }
 
+// ------------------- AsibotSolverImpl Related ------------------------------------
+
+roboticslab::AsibotSolverImpl::AsibotSolverImpl(double A0, double A1, double A2, double A3, const std::vector<double> & qMin, const std::vector<double> & qMax)
+    : A0(A0), A1(A1), A2(A2), A3(A3),
+      qMin(qMin),
+      qMax(qMax),
+      confFactory(NULL)
+{
+    tcpFrameStruct.hasFrame = false;
+    tcpFrameStruct.frameTcp = yarp::math::eye(4);
+}
+
 // -----------------------------------------------------------------------------
 
-bool roboticslab::AsibotSolver::getNumJoints(int* numJoints)
+roboticslab::AsibotSolverImpl::~AsibotSolverImpl()
+{
+    if (confFactory != NULL)
+    {
+        delete confFactory;
+        confFactory = NULL;
+    }
+}
+
+// -----------------------------------------------------------------------------
+
+bool roboticslab::AsibotSolverImpl::buildStrategyFactory(const std::string & strategy)
+{
+    if (strategy == DEFAULT_STRATEGY)
+    {
+        confFactory = new AsibotConfigurationLeastOverallAngularDisplacementFactory(qMin, qMax);
+    }
+    else
+    {
+        return false;
+    }
+
+    return true;
+}
+
+// -----------------------------------------------------------------------------
+
+roboticslab::AsibotConfiguration * roboticslab::AsibotSolverImpl::getConfiguration() const
+{
+    return confFactory->create();
+}
+
+// -----------------------------------------------------------------------------
+
+roboticslab::AsibotSolverImpl::AsibotTcpFrame roboticslab::AsibotSolverImpl::getTcpFrame() const
+{
+    AsibotTcpFrame tcpFrameStructLocal;
+    mutex.wait();
+    tcpFrameStructLocal = tcpFrameStruct;
+    mutex.post();
+    return tcpFrameStructLocal;
+}
+
+// -----------------------------------------------------------------------------
+
+void roboticslab::AsibotSolverImpl::setTcpFrame(const AsibotTcpFrame & tcpFrameStruct)
+{
+    mutex.wait();
+    this->tcpFrameStruct = tcpFrameStruct;
+    mutex.post();
+}
+
+// ------------------- ICartesianSolver Related ------------------------------------
+
+bool roboticslab::AsibotSolverImpl::getNumJoints(int* numJoints)
 {
     *numJoints = NUM_MOTORS;
     return true;
@@ -89,7 +155,7 @@ bool roboticslab::AsibotSolver::getNumJoints(int* numJoints)
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::AsibotSolver::appendLink(const std::vector<double> &x)
+bool roboticslab::AsibotSolverImpl::appendLink(const std::vector<double> &x)
 {
     using namespace yarp::math;
 
@@ -105,7 +171,7 @@ bool roboticslab::AsibotSolver::appendLink(const std::vector<double> &x)
 
 // --------------------------------------------------------------------------
 
-bool roboticslab::AsibotSolver::restoreOriginalChain()
+bool roboticslab::AsibotSolverImpl::restoreOriginalChain()
 {
     AsibotTcpFrame tcpFrameStruct = getTcpFrame();
     tcpFrameStruct.hasFrame = false;
@@ -116,7 +182,7 @@ bool roboticslab::AsibotSolver::restoreOriginalChain()
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::AsibotSolver::changeOrigin(const std::vector<double> &x_old_obj, const std::vector<double> &x_new_old,
+bool roboticslab::AsibotSolverImpl::changeOrigin(const std::vector<double> &x_old_obj, const std::vector<double> &x_new_old,
         std::vector<double> &x_new_obj)
 {
     using namespace yarp::math;
@@ -132,7 +198,7 @@ bool roboticslab::AsibotSolver::changeOrigin(const std::vector<double> &x_old_ob
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::AsibotSolver::fwdKin(const std::vector<double> &q, std::vector<double> &x)
+bool roboticslab::AsibotSolverImpl::fwdKin(const std::vector<double> &q, std::vector<double> &x)
 {
     std::vector<double> qInRad(q);
 
@@ -181,7 +247,7 @@ bool roboticslab::AsibotSolver::fwdKin(const std::vector<double> &q, std::vector
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::AsibotSolver::poseDiff(const std::vector<double> &xLhs, const std::vector<double> &xRhs, std::vector<double> &xOut)
+bool roboticslab::AsibotSolverImpl::poseDiff(const std::vector<double> &xLhs, const std::vector<double> &xRhs, std::vector<double> &xOut)
 {
     using namespace yarp::math;
 
@@ -209,7 +275,7 @@ bool roboticslab::AsibotSolver::poseDiff(const std::vector<double> &xLhs, const 
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::AsibotSolver::invKin(const std::vector<double> &xd, const std::vector<double> &qGuess, std::vector<double> &q,
+bool roboticslab::AsibotSolverImpl::invKin(const std::vector<double> &xd, const std::vector<double> &qGuess, std::vector<double> &q,
         const reference_frame frame)
 {
     std::vector<double> xd_base_obj;
@@ -318,7 +384,7 @@ bool roboticslab::AsibotSolver::invKin(const std::vector<double> &xd, const std:
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::AsibotSolver::diffInvKin(const std::vector<double> &q, const std::vector<double> &xdot, std::vector<double> &qdot,
+bool roboticslab::AsibotSolverImpl::diffInvKin(const std::vector<double> &q, const std::vector<double> &xdot, std::vector<double> &qdot,
         const reference_frame frame)
 {
     using namespace yarp::math;
@@ -482,7 +548,7 @@ bool roboticslab::AsibotSolver::diffInvKin(const std::vector<double> &q, const s
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::AsibotSolver::invDyn(const std::vector<double> &q,std::vector<double> &t)
+bool roboticslab::AsibotSolverImpl::invDyn(const std::vector<double> &q, std::vector<double> &t)
 {
     CD_WARNING("Not implemented.\n");
     return false;
@@ -490,7 +556,7 @@ bool roboticslab::AsibotSolver::invDyn(const std::vector<double> &q,std::vector<
 
 // -----------------------------------------------------------------------------
 
-bool roboticslab::AsibotSolver::invDyn(const std::vector<double> &q,const std::vector<double> &qdot,const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t)
+bool roboticslab::AsibotSolverImpl::invDyn(const std::vector<double> &q, const std::vector<double> &qdot, const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t)
 {
     CD_WARNING("Not implemented.\n");
     return false;
