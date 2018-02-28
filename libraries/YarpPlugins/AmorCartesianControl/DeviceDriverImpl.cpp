@@ -94,11 +94,15 @@ bool roboticslab::AmorCartesianControl::open(yarp::os::Searchable& config)
     std::string solverStr = config.check("solver", yarp::os::Value(DEFAULT_SOLVER),
             "cartesian solver device").asString();
 
+    std::string angleRepr = config.check("angleRepr", yarp::os::Value(DEFAULT_ANGLE_REPR),
+            "angle representation").asString();
+
     yarp::os::Property cartesianDeviceOptions;
     cartesianDeviceOptions.fromString(config.toString());
     cartesianDeviceOptions.put("device", solverStr);
     cartesianDeviceOptions.put("mins", yarp::os::Value::makeList(qMin.toString().c_str()));
     cartesianDeviceOptions.put("maxs", yarp::os::Value::makeList(qMax.toString().c_str()));
+    cartesianDeviceOptions.put("angleRepr", angleRepr);
     cartesianDeviceOptions.setMonitor(config.getMonitor(), solverStr.c_str());
 
     if (!cartesianDevice.open(cartesianDeviceOptions))

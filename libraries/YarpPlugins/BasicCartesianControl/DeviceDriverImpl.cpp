@@ -87,10 +87,10 @@ bool roboticslab::BasicCartesianControl::open(yarp::os::Searchable& config) {
 
     yarp::os::Property solverOptions;
     solverOptions.fromString( config.toString() );
-    solverOptions.put("device",solverStr);
+    solverOptions.put("device", solverStr);
     solverOptions.put("mins", yarp::os::Value::makeList(qMin.toString().c_str()));
     solverOptions.put("maxs", yarp::os::Value::makeList(qMax.toString().c_str()));
-    solverOptions.put("angleRepr", angleRepr.c_str());
+    solverOptions.put("angleRepr", angleRepr);
     solverOptions.setMonitor(config.getMonitor(), solverStr.c_str());
 
     solverDevice.open(solverOptions);
