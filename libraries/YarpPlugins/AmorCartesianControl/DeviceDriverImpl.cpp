@@ -91,18 +91,11 @@ bool roboticslab::AmorCartesianControl::open(yarp::os::Searchable& config)
         qMax.addDouble(KinRepresentation::radToDeg(jointInfo.upperJointLimit));
     }
 
-    std::string kinematicsFile = config.check("kinematics", yarp::os::Value(""),
-            "path to file with description of AMOR kinematics").asString();
+    std::string solverStr = config.check("solver", yarp::os::Value(DEFAULT_SOLVER),
+            "cartesian solver device").asString();
 
     yarp::os::Property cartesianDeviceOptions;
-
-    if (!cartesianDeviceOptions.fromConfigFile(kinematicsFile))
-    {
-        CD_ERROR("Cannot read from --kinematics \"%s\".\n", kinematicsFile.c_str());
-        return false;
-    }
-
-    std::string solverStr = "KdlSolver";
+    cartesianDeviceOptions.fromString(config.toString());
     cartesianDeviceOptions.put("device", solverStr);
     cartesianDeviceOptions.put("mins", yarp::os::Value::makeList(qMin.toString().c_str()));
     cartesianDeviceOptions.put("maxs", yarp::os::Value::makeList(qMax.toString().c_str()));

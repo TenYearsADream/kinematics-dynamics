@@ -15,6 +15,7 @@
 #define DEFAULT_CAN_LIBRARY "libeddriver.so"
 #define DEFAULT_CAN_PORT 0
 
+#define DEFAULT_SOLVER "KdlSolver"
 #define DEFAULT_GAIN 0.05
 #define DEFAULT_QDOT_LIMIT 10.0
 #define DEFAULT_WAIT_PERIOD_MS 30
