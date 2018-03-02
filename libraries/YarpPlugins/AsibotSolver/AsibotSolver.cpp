@@ -113,12 +113,10 @@ bool roboticslab::AsibotSolver::appendLink(const std::vector<double> &x)
     {
         return impl->appendLink(x);
     }
-    else
-    {
-        std::vector<double> xOrient;
-        KinRepresentation::encodePose(x, xOrient, KinRepresentation::CARTESIAN, orient);
-        return impl->appendLink(xOrient);
-    }
+
+    std::vector<double> xOrient;
+    KinRepresentation::encodePose(x, xOrient, KinRepresentation::CARTESIAN, orient);
+    return impl->appendLink(xOrient);
 }
 
 // -----------------------------------------------------------------------------
@@ -136,22 +134,20 @@ bool roboticslab::AsibotSolver::changeOrigin(const std::vector<double> &x_old_ob
     {
         return impl->changeOrigin(x_old_obj, x_new_old, x_new_obj);
     }
-    else
+
+    std::vector<double> x_old_obj_orient, x_new_old_orient;
+
+    KinRepresentation::encodePose(x_old_obj, x_old_obj_orient, KinRepresentation::CARTESIAN, orient);
+    KinRepresentation::encodePose(x_new_old, x_new_old_orient, KinRepresentation::CARTESIAN, orient);
+
+    if (!impl->changeOrigin(x_old_obj_orient, x_new_old_orient, x_new_obj))
     {
-        std::vector<double> x_old_obj_orient, x_new_old_orient;
-
-        KinRepresentation::encodePose(x_old_obj, x_old_obj_orient, KinRepresentation::CARTESIAN, orient);
-        KinRepresentation::encodePose(x_new_old, x_new_old_orient, KinRepresentation::CARTESIAN, orient);
-
-        if (!impl->changeOrigin(x_old_obj_orient, x_new_old_orient, x_new_obj))
-        {
-            return false;
-        }
-
-        KinRepresentation::decodePose(x_new_obj, x_new_obj, KinRepresentation::CARTESIAN, orient);
-
-        return true;
+        return false;
     }
+
+    KinRepresentation::decodePose(x_new_obj, x_new_obj, KinRepresentation::CARTESIAN, orient);
+
+    return true;
 }
 
 // -----------------------------------------------------------------------------
@@ -179,22 +175,20 @@ bool roboticslab::AsibotSolver::poseDiff(const std::vector<double> &xLhs, const 
     {
         return impl->poseDiff(xLhs, xRhs, xOut);
     }
-    else
+
+    std::vector<double> xLhsOrient, xRhsOrient;
+
+    KinRepresentation::encodePose(xLhs, xLhsOrient, KinRepresentation::CARTESIAN, orient);
+    KinRepresentation::encodePose(xRhs, xRhsOrient, KinRepresentation::CARTESIAN, orient);
+
+    if (!impl->poseDiff(xLhsOrient, xRhsOrient, xOut))
     {
-        std::vector<double> xLhsOrient, xRhsOrient;
-
-        KinRepresentation::encodePose(xLhs, xLhsOrient, KinRepresentation::CARTESIAN, orient);
-        KinRepresentation::encodePose(xRhs, xRhsOrient, KinRepresentation::CARTESIAN, orient);
-
-        if (!impl->poseDiff(xLhsOrient, xRhsOrient, xOut))
-        {
-            return false;
-        }
-
-        KinRepresentation::decodePose(xOut, xOut, KinRepresentation::CARTESIAN, orient);
-
-        return true;
+        return false;
     }
+
+    KinRepresentation::decodePose(xOut, xOut, KinRepresentation::CARTESIAN, orient);
+
+    return true;
 }
 
 // -----------------------------------------------------------------------------
@@ -205,12 +199,10 @@ bool roboticslab::AsibotSolver::invKin(const std::vector<double> &xd, const std:
     {
         return impl->invKin(xd, qGuess, q, frame);
     }
-    else
-    {
-        std::vector<double> xdOrient;
-        KinRepresentation::encodePose(xd, xdOrient, KinRepresentation::CARTESIAN, orient);
-        return impl->invKin(xd, qGuess, q, frame);
-    }
+
+    std::vector<double> xdOrient;
+    KinRepresentation::encodePose(xd, xdOrient, KinRepresentation::CARTESIAN, orient);
+    return impl->invKin(xd, qGuess, q, frame);
 }
 
 // -----------------------------------------------------------------------------
@@ -221,20 +213,18 @@ bool roboticslab::AsibotSolver::diffInvKin(const std::vector<double> &q, const s
     {
         return impl->diffInvKin(q, xdot, qdot, frame);
     }
-    else
+
+    std::vector<double> x, xdotOrient;
+
+    if (!impl->fwdKin(q, x))
     {
-        std::vector<double> x, xdotOrient;
-
-        if (!impl->fwdKin(q, x))
-        {
-            CD_ERROR("fwdKin failed.\n");
-            return false;
-        }
-
-        KinRepresentation::encodeVelocity(x, xdot, xdotOrient, KinRepresentation::CARTESIAN, orient);
-
-        return impl->diffInvKin(q, xdotOrient, qdot, frame);
+        CD_ERROR("fwdKin failed.\n");
+        return false;
     }
+
+    KinRepresentation::encodeVelocity(x, xdot, xdotOrient, KinRepresentation::CARTESIAN, orient);
+
+    return impl->diffInvKin(q, xdotOrient, qdot, frame);
 }
 
 // -----------------------------------------------------------------------------
