@@ -115,7 +115,13 @@ bool roboticslab::AsibotSolver::appendLink(const std::vector<double> &x)
     }
 
     std::vector<double> xOrient;
-    KinRepresentation::encodePose(x, xOrient, KinRepresentation::CARTESIAN, orient);
+
+    if (!KinRepresentation::encodePose(x, xOrient, KinRepresentation::CARTESIAN, orient))
+    {
+        CD_ERROR("encodePose(x) failed.\n");
+        return false;
+    }
+
     return impl->appendLink(xOrient);
 }
 
@@ -137,15 +143,28 @@ bool roboticslab::AsibotSolver::changeOrigin(const std::vector<double> &x_old_ob
 
     std::vector<double> x_old_obj_orient, x_new_old_orient;
 
-    KinRepresentation::encodePose(x_old_obj, x_old_obj_orient, KinRepresentation::CARTESIAN, orient);
-    KinRepresentation::encodePose(x_new_old, x_new_old_orient, KinRepresentation::CARTESIAN, orient);
+    if (!KinRepresentation::encodePose(x_old_obj, x_old_obj_orient, KinRepresentation::CARTESIAN, orient))
+    {
+        CD_ERROR("encodePose(x_old_obj) failed.\n");
+        return false;
+    }
+
+    if (!KinRepresentation::encodePose(x_new_old, x_new_old_orient, KinRepresentation::CARTESIAN, orient))
+    {
+        CD_ERROR("encodePose(x_new_old) failed.\n");
+        return false;
+    }
 
     if (!impl->changeOrigin(x_old_obj_orient, x_new_old_orient, x_new_obj))
     {
         return false;
     }
 
-    KinRepresentation::decodePose(x_new_obj, x_new_obj, KinRepresentation::CARTESIAN, orient);
+    if (!KinRepresentation::decodePose(x_new_obj, x_new_obj, KinRepresentation::CARTESIAN, orient))
+    {
+        CD_ERROR("decodePose(x_new_obj) failed.\n");
+        return false;
+    }
 
     return true;
 }
@@ -161,7 +180,11 @@ bool roboticslab::AsibotSolver::fwdKin(const std::vector<double> &q, std::vector
 
     if (orient != KinRepresentation::AXIS_ANGLE_SCALED)
     {
-        KinRepresentation::decodePose(x, x, KinRepresentation::CARTESIAN, orient);
+        if (!KinRepresentation::decodePose(x, x, KinRepresentation::CARTESIAN, orient))
+        {
+            CD_ERROR("decodePose(x) failed.\n");
+            return false;
+        }
     }
 
     return true;
@@ -178,15 +201,28 @@ bool roboticslab::AsibotSolver::poseDiff(const std::vector<double> &xLhs, const 
 
     std::vector<double> xLhsOrient, xRhsOrient;
 
-    KinRepresentation::encodePose(xLhs, xLhsOrient, KinRepresentation::CARTESIAN, orient);
-    KinRepresentation::encodePose(xRhs, xRhsOrient, KinRepresentation::CARTESIAN, orient);
+    if (!KinRepresentation::encodePose(xLhs, xLhsOrient, KinRepresentation::CARTESIAN, orient))
+    {
+        CD_ERROR("encodePose(xLhs) failed.\n");
+        return false;
+    }
+
+    if (!KinRepresentation::encodePose(xRhs, xRhsOrient, KinRepresentation::CARTESIAN, orient))
+    {
+        CD_ERROR("encodePose(xRhs) failed.\n");
+        return false;
+    }
 
     if (!impl->poseDiff(xLhsOrient, xRhsOrient, xOut))
     {
         return false;
     }
 
-    KinRepresentation::decodePose(xOut, xOut, KinRepresentation::CARTESIAN, orient);
+    if (!KinRepresentation::decodePose(xOut, xOut, KinRepresentation::CARTESIAN, orient))
+    {
+        CD_ERROR("decodePose(xOut) failed.\n");
+        return false;
+    }
 
     return true;
 }
@@ -201,7 +237,13 @@ bool roboticslab::AsibotSolver::invKin(const std::vector<double> &xd, const std:
     }
 
     std::vector<double> xdOrient;
-    KinRepresentation::encodePose(xd, xdOrient, KinRepresentation::CARTESIAN, orient);
+
+    if (!KinRepresentation::encodePose(xd, xdOrient, KinRepresentation::CARTESIAN, orient))
+    {
+        CD_ERROR("encodePose(xd) failed.\n");
+        return false;
+    }
+
     return impl->invKin(xd, qGuess, q, frame);
 }
 
@@ -222,7 +264,11 @@ bool roboticslab::AsibotSolver::diffInvKin(const std::vector<double> &q, const s
         return false;
     }
 
-    KinRepresentation::encodeVelocity(x, xdot, xdotOrient, KinRepresentation::CARTESIAN, orient);
+    if (!KinRepresentation::encodeVelocity(x, xdot, xdotOrient, KinRepresentation::CARTESIAN, orient))
+    {
+        CD_ERROR("encodeVelocity(xdot) failed.\n");
+        return false;
+    }
 
     return impl->diffInvKin(q, xdotOrient, qdot, frame);
 }
@@ -231,14 +277,26 @@ bool roboticslab::AsibotSolver::diffInvKin(const std::vector<double> &q, const s
 
 bool roboticslab::AsibotSolver::invDyn(const std::vector<double> &q, std::vector<double> &t)
 {
-    if (orient != KinRepresentation::AXIS_ANGLE_SCALED)
+    if (orient == KinRepresentation::AXIS_ANGLE_SCALED)
     {
+        return impl->invDyn(q, t);
+    }
 
-        CD_ERROR("Unsupported angle representation.\n");
+    std::vector<double> x, xdot(6, 0.0), tOrient;
+
+    if (!impl->fwdKin(q, x))
+    {
+        CD_ERROR("fwdKin failed.\n");
         return false;
     }
 
-    return impl->invDyn(q, t);
+    if (!KinRepresentation::encodeAcceleration(x, xdot, t, tOrient, KinRepresentation::CARTESIAN, orient))
+    {
+        CD_ERROR("encodeAcceleration(t) failed.\n");
+        return false;
+    }
+
+    return impl->invDyn(q, tOrient);
 }
 
 // -----------------------------------------------------------------------------
