@@ -18,41 +18,41 @@ namespace roboticslab
  * @ingroup KdlSolver
  * @brief The KdlSolverImpl class implements ICartesianSolver.
  */
-class KdlSolverImpl : public ICartesianSolver
+class KdlSolverImpl
 {
 public:
 
     KdlSolverImpl(const KDL::Chain & chain, const KDL::Vector & gravity, const KDL::JntArray & qMin, const KDL::JntArray & qMax, double eps, int maxIter);
 
     // Get number of joints for which the solver has been configured.
-    virtual bool getNumJoints(int* numJoints);
+    bool getNumJoints(int* numJoints);
 
     // Append an additional link.
-    virtual bool appendLink(const std::vector<double>& x);
+    bool appendLink(const std::vector<double>& x);
 
     // Restore original kinematic chain.
-    virtual bool restoreOriginalChain();
+    bool restoreOriginalChain();
 
     // Change reference frame.
-    virtual bool changeOrigin(const std::vector<double> &x_old_obj, const std::vector<double> &x_new_old, std::vector<double> &x_new_obj);
+    bool changeOrigin(const std::vector<double> &x_old_obj, const std::vector<double> &x_new_old, std::vector<double> &x_new_obj);
 
     // Perform forward kinematics.
-    virtual bool fwdKin(const std::vector<double> &q, std::vector<double> &x);
+    bool fwdKin(const std::vector<double> &q, std::vector<double> &x);
 
     // Obtain difference between supplied pose inputs.
-    virtual bool poseDiff(const std::vector<double> &xLhs, const std::vector<double> &xRhs, std::vector<double> &xOut);
+    bool poseDiff(const std::vector<double> &xLhs, const std::vector<double> &xRhs, std::vector<double> &xOut);
 
     // Perform inverse kinematics.
-    virtual bool invKin(const std::vector<double> &xd, const std::vector<double> &qGuess, std::vector<double> &q, const reference_frame frame);
+    bool invKin(const std::vector<double> &xd, const std::vector<double> &qGuess, std::vector<double> &q, const ICartesianSolver::reference_frame frame);
 
     // Perform differential inverse kinematics.
-    virtual bool diffInvKin(const std::vector<double> &q, const std::vector<double> &xdot, std::vector<double> &qdot, const reference_frame frame);
+    bool diffInvKin(const std::vector<double> &q, const std::vector<double> &xdot, std::vector<double> &qdot, const ICartesianSolver::reference_frame frame);
 
     // Perform inverse dynamics.
-    virtual bool invDyn(const std::vector<double> &q, std::vector<double> &t);
+    bool invDyn(const std::vector<double> &q, std::vector<double> &t);
 
     // Perform inverse dynamics.
-    virtual bool invDyn(const std::vector<double> &q, const std::vector<double> &qdot, const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t);
+    bool invDyn(const std::vector<double> &q, const std::vector<double> &qdot, const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t);
 
 private:
 

@@ -276,17 +276,17 @@ bool roboticslab::AsibotSolverImpl::poseDiff(const std::vector<double> &xLhs, co
 // -----------------------------------------------------------------------------
 
 bool roboticslab::AsibotSolverImpl::invKin(const std::vector<double> &xd, const std::vector<double> &qGuess, std::vector<double> &q,
-        const reference_frame frame)
+        const ICartesianSolver::reference_frame frame)
 {
     std::vector<double> xd_base_obj;
 
-    if (frame == TCP_FRAME)
+    if (frame == ICartesianSolver::TCP_FRAME)
     {
         std::vector<double> x_base_tcp;
         fwdKin(qGuess, x_base_tcp);
         changeOrigin(xd, x_base_tcp, xd_base_obj);
     }
-    else if (frame == BASE_FRAME)
+    else if (frame == ICartesianSolver::BASE_FRAME)
     {
         xd_base_obj = xd;
     }
@@ -385,7 +385,7 @@ bool roboticslab::AsibotSolverImpl::invKin(const std::vector<double> &xd, const 
 // -----------------------------------------------------------------------------
 
 bool roboticslab::AsibotSolverImpl::diffInvKin(const std::vector<double> &q, const std::vector<double> &xdot, std::vector<double> &qdot,
-        const reference_frame frame)
+        const ICartesianSolver::reference_frame frame)
 {
     using namespace yarp::math;
 
@@ -398,7 +398,7 @@ bool roboticslab::AsibotSolverImpl::diffInvKin(const std::vector<double> &q, con
 
     yarp::sig::Matrix Ja(6, 5);
 
-    if (frame == BASE_FRAME)
+    if (frame == ICartesianSolver::BASE_FRAME)
     {
         double s1 = std::sin(qInRad[0]);
         double c1 = std::cos(qInRad[0]);
@@ -447,7 +447,7 @@ bool roboticslab::AsibotSolverImpl::diffInvKin(const std::vector<double> &q, con
         Ja(5, 3) = 0;
         Ja(5, 4) = c234;
     }
-    else if (frame == TCP_FRAME)
+    else if (frame == ICartesianSolver::TCP_FRAME)
     {
         double s2 = std::sin(qInRad[1]);
         double c2 = std::cos(qInRad[1]);

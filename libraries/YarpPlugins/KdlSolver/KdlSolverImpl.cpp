@@ -114,7 +114,7 @@ bool roboticslab::KdlSolverImpl::poseDiff(const std::vector<double> &xLhs, const
 // -----------------------------------------------------------------------------
 
 bool roboticslab::KdlSolverImpl::invKin(const std::vector<double> &xd, const std::vector<double> &qGuess, std::vector<double> &q,
-        const reference_frame frame)
+        const ICartesianSolver::reference_frame frame)
 {
     KDL::Frame frameXd = KdlVectorConverter::vectorToFrame(xd);
 
@@ -148,14 +148,14 @@ bool roboticslab::KdlSolverImpl::invKin(const std::vector<double> &xd, const std
 
 #endif //_USE_LMA_
 
-    if (frame == TCP_FRAME)
+    if (frame == ICartesianSolver::TCP_FRAME)
     {
         KDL::ChainFkSolverPos_recursive fksolver(chain);
         KDL::Frame fOutCart;
         fksolver.JntToCart(qGuessInRad, fOutCart);
         frameXd = fOutCart * frameXd;
     }
-    else if (frame != BASE_FRAME)
+    else if (frame != ICartesianSolver::BASE_FRAME)
     {
         CD_WARNING("Unsupported frame.\n");
         return false;
@@ -186,7 +186,7 @@ bool roboticslab::KdlSolverImpl::invKin(const std::vector<double> &xd, const std
 // -----------------------------------------------------------------------------
 
 bool roboticslab::KdlSolverImpl::diffInvKin(const std::vector<double> &q, const std::vector<double> &xdot, std::vector<double> &qdot,
-        const reference_frame frame)
+        const ICartesianSolver::reference_frame frame)
 {
     const KDL::Chain & chain = getChain();
     KDL::JntArray qInRad(chain.getNrOfJoints());
@@ -198,7 +198,7 @@ bool roboticslab::KdlSolverImpl::diffInvKin(const std::vector<double> &q, const 
 
     KDL::Twist kdlxdot = KdlVectorConverter::vectorToTwist(xdot);
 
-    if (frame == TCP_FRAME)
+    if (frame == ICartesianSolver::TCP_FRAME)
     {
         KDL::ChainFkSolverPos_recursive fksolver(chain);
         KDL::Frame fOutCart;
@@ -208,7 +208,7 @@ bool roboticslab::KdlSolverImpl::diffInvKin(const std::vector<double> &q, const 
         //-- "Twist and Wrench transformations" @ http://docs.ros.org/latest/api/orocos_kdl/html/geomprim.html
         kdlxdot = fOutCart.M * kdlxdot;
     }
-    else if (frame != BASE_FRAME)
+    else if (frame != ICartesianSolver::BASE_FRAME)
     {
         CD_WARNING("Unsupported frame.\n");
         return false;
