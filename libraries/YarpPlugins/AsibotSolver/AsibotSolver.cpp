@@ -65,9 +65,13 @@ bool roboticslab::AsibotSolver::open(yarp::os::Searchable& config)
         qMin[i] = mins->get(i).asDouble();
         qMax[i] = maxs->get(i).asDouble();
 
-        if (qMin[i] >= qMax[i])
+        if (qMin[i] == qMax[i])
         {
-            CD_ERROR("qMin >= qMax (%f >= %f) at joint %d\n", qMin[i], qMax[i], i);
+            CD_WARNING("qMin == qMax (%f) at joint %d\n", qMin[i], i);
+        }
+        else if (qMin[i] > qMax[i])
+        {
+            CD_ERROR("qMin > qMax (%f > %f) at joint %d\n", qMin[i], qMax[i], i);
             return false;
         }
     }
