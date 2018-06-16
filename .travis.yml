@@ -99,6 +99,7 @@ script:
   - bin/testKdlSolver
   - bin/testKdlSolverFromFile
   - bin/testAsibotSolverFromFile
+  - bin/testBasicJointTrajectory
   - bin/testKdlTrajectory
   - bin/testBasicCartesianControl
 

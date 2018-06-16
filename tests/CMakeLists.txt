@@ -51,11 +51,14 @@ if(ENABLE_tests)
                                                    KinematicsDynamicsInterfaces
                                                    gtest_main)
 
-    # testKdlTrajectory
+    # testBasicJointTrajectory
 
     add_executable(testBasicJointTrajectory testBasicJointTrajectory.cpp)
 
-    target_link_libraries(testBasicJointTrajectory YARP::YARP_OS YARP::YARP_dev gtest_main TrajectoryLib)
+    target_link_libraries(testBasicJointTrajectory TrajectoryLib
+                                                   gtest_main)
+
+    # testKdlTrajectory
 
     add_executable(testKdlTrajectory testKdlTrajectory.cpp)
 
