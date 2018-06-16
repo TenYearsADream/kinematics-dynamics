@@ -20,20 +20,19 @@ yarp_add_plugin(BasicTwoLimbCartesianControl BasicTwoLimbCartesianControl.hpp
                                              ICartesianControlImpl.cpp
                                              RateThreadImpl.cpp)
 
-add_dependencies(BasicTwoLimbCartesianControl COLOR_DEBUG)
-
 target_link_libraries(BasicTwoLimbCartesianControl YARP::YARP_OS
                                                    YARP::YARP_dev
+                                                   ROBOTICSLAB::ColorDebug
                                                    TrajectoryLib
                                                    Gait)
 
 yarp_install(TARGETS BasicTwoLimbCartesianControl
              COMPONENT runtime
-             LIBRARY DESTINATION ${YARP_DYNAMIC_PLUGINS_INSTALL_DIR}
-             ARCHIVE DESTINATION ${YARP_STATIC_PLUGINS_INSTALL_DIR})
+             LIBRARY DESTINATION ${ROBOTICSLAB-KINEMATICS-DYNAMICS_DYNAMIC_PLUGINS_INSTALL_DIR}
+             ARCHIVE DESTINATION ${ROBOTICSLAB-KINEMATICS-DYNAMICS_STATIC_PLUGINS_INSTALL_DIR})
 
 yarp_install(FILES BasicTwoLimbCartesianControl.ini
              COMPONENT runtime
-             DESTINATION ${YARP_PLUGIN_MANIFESTS_INSTALL_DIR})
+             DESTINATION ${ROBOTICSLAB-KINEMATICS-DYNAMICS_PLUGIN_MANIFESTS_INSTALL_DIR})
 
 endif()

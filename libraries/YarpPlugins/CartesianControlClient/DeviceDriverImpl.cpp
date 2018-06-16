@@ -5,17 +5,18 @@
 #include <string>
 
 #include <yarp/os/Network.h>
+#include <yarp/os/Time.h>
 
-#include <ColorDebug.hpp>
+#include <ColorDebug.h>
 
 // ------------------- DeviceDriver Related ------------------------------------
 
 bool roboticslab::CartesianControlClient::open(yarp::os::Searchable& config)
 {
     std::string local = config.check("cartesianLocal", yarp::os::Value(DEFAULT_CARTESIAN_LOCAL),
-            "cartesianLocal").asString();
+            "local port").asString();
     std::string remote = config.check("cartesianRemote", yarp::os::Value(DEFAULT_CARTESIAN_REMOTE),
-            "cartesianRemote").asString();
+            "remote port").asString();
 
     bool portsOk = true;
 
@@ -29,7 +30,8 @@ bool roboticslab::CartesianControlClient::open(yarp::os::Searchable& config)
         return false;
     }
 
-    std::string suffix = config.check("transform") ? "/rpc_transform:s" : "/rpc:s";
+    bool transformEnabled = config.check("transform", "connect to server transform port");
+    std::string suffix = transformEnabled ? "/rpc_transform:s" : "/rpc:s";
 
     if (!rpcClient.addOutput(remote + suffix))
     {
@@ -45,16 +47,30 @@ bool roboticslab::CartesianControlClient::open(yarp::os::Searchable& config)
         return false;
     }
 
-    if (!yarp::os::Network::connect(remote + "/state:o", fkInPort.getName(), "udp"))
+    fkStreamTimeoutSecs = config.check("fkStreamTimeoutSecs", yarp::os::Value(DEFAULT_FK_STREAM_TIMEOUT_SECS),
+            "FK stream timeout (seconds)").asDouble();
+
+    if (transformEnabled)
     {
-        CD_INFO("FK stream disabled, using RPC instead.\n");
+        // Incoming FK stream data may not conform to standard representation, resort to RPC
+        // if user requests --transform (see #143, #145).
         fkStreamEnabled = false;
-        fkInPort.close();
+        CD_WARNING("FK streaming not supported in --transform mode, using RPC instead.\n");
     }
     else
     {
-        fkStreamEnabled = true;
-        fkInPort.useCallback(fkStreamResponder);
+        if (!yarp::os::Network::connect(remote + "/state:o", fkInPort.getName(), "udp"))
+        {
+            CD_WARNING("FK stream disabled, using RPC instead.\n");
+            fkStreamEnabled = false;
+            fkInPort.close();
+        }
+        else
+        {
+            fkStreamEnabled = true;
+            fkInPort.useCallback(fkStreamResponder);
+            yarp::os::Time::delay(fkStreamTimeoutSecs); // wait for first data to arrive
+        }
     }
 
     CD_SUCCESS("Connected to remote.\n");

@@ -8,7 +8,7 @@
 #include <yarp/math/Math.h>
 #include <yarp/math/SVD.h>
 
-#include <ColorDebug.hpp>
+#include <ColorDebug.h>
 
 #include "KinematicRepresentation.hpp"
 
@@ -494,29 +494,6 @@ bool roboticslab::AsibotSolver::invDyn(const std::vector<double> &q,const std::v
 {
     CD_WARNING("Not implemented.\n");
     return false;
-}
-
-// -----------------------------------------------------------------------------
-
-bool roboticslab::AsibotSolver::setLimits(const std::vector<double> &qMin, const std::vector<double> &qMax)
-{
-    for (int motor = 0; motor < NUM_MOTORS; motor++)
-    {
-        if (qMin[motor] > qMax[motor])
-        {
-            CD_ERROR("qMin > qMax at joint q%d (%f vs %f).\n", motor + 1, qMin[motor], qMax[motor]);
-            return false;
-        }
-        else if (qMin[motor] == qMax[motor])
-        {
-            CD_WARNING("qMin = qMax at joint q%d.\n", motor + 1);
-        }
-
-        this->qMax[motor] = qMax[motor];
-        this->qMin[motor] = qMin[motor];
-    }
-
-    return true;
 }
 
 // -----------------------------------------------------------------------------

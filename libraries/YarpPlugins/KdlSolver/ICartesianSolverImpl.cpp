@@ -15,7 +15,7 @@
     #include <kdl/chainiksolverpos_nr_jl.hpp>
 #endif //_USE_LMA_
 
-#include <ColorDebug.hpp>
+#include <ColorDebug.h>
 
 #include "KdlVectorConverter.hpp"
 #include "KinematicRepresentation.hpp"
@@ -327,18 +327,6 @@ bool roboticslab::KdlSolver::invDyn(const std::vector<double> &q,const std::vect
         t[motor] = kdlt(motor);
     }
 
-    return true;
-}
-
-// -----------------------------------------------------------------------------
-
-bool roboticslab::KdlSolver::setLimits(const std::vector<double> &qMin, const std::vector<double> &qMax)
-{
-    for (int motor = 0; motor < getChain().getNrOfJoints(); motor++)
-    {
-        this->qMax(motor) = KinRepresentation::degToRad(qMax[motor]);
-        this->qMin(motor) = KinRepresentation::degToRad(qMin[motor]);
-    }
     return true;
 }
 

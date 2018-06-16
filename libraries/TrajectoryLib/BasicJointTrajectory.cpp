@@ -2,7 +2,7 @@
 
 #include "BasicJointTrajectory.hpp"
 
-#include <ColorDebug.hpp>
+#include <ColorDebug.h>
 
 const int roboticslab::BasicJointTrajectory::DURATION_NOT_SET = -1;
 

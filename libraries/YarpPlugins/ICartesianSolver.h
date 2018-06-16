@@ -5,7 +5,9 @@
 
 #include <vector>
 
-#include <yarp/os/Vocab.h>
+#ifndef SWIG_PREPROCESSOR_SHOULD_SKIP_THIS
+#define VOCAB(a,b,c,d) ((((int)(d))<<24)+(((int)(c))<<16)+(((int)(b))<<8)+((int)(a)))
+#endif // SWIG_PREPROCESSOR_SHOULD_SKIP_THIS
 
 /**
  * @file
@@ -27,8 +29,8 @@ class ICartesianSolver
         //! Lists supported reference frames.
         enum reference_frame
         {
-            BASE_FRAME = VOCAB4('c','p','f','b'), //!< Base frame
-            TCP_FRAME = VOCAB4('c','p','f','t')   //!< End-effector frame (TCP)
+            BASE_FRAME = VOCAB('c','p','f','b'), //!< Base frame
+            TCP_FRAME = VOCAB('c','p','f','t')   //!< End-effector frame (TCP)
         };
 
         //! Destructor
@@ -83,7 +85,7 @@ class ICartesianSolver
         /**
          * @brief Perform forward kinematics
          *
-         * @param q Vector describing a position in joint space (degrees).
+         * @param q Vector describing a position in joint space (meters or degrees).
          * @param x 6-element vector describing same position in cartesian space; first
          * three elements denote translation (meters), last three denote rotation in scaled
          * axis-angle representation (radians).
@@ -118,8 +120,8 @@ class ICartesianSolver
          * @param xd 6-element vector describing desired position in cartesian space; first
          * three elements denote translation (meters), last three denote rotation in scaled
          * axis-angle representation (radians).
-         * @param qGuess Vector describing current position in joint space (degrees).
-         * @param q Vector describing target position in joint space (degrees).
+         * @param qGuess Vector describing current position in joint space (meters or degrees).
+         * @param q Vector describing target position in joint space (meters or degrees).
          * @param frame Points at the @ref reference_frame the desired position is expressed in.
          *
          * @return true on success, false otherwise
@@ -130,11 +132,11 @@ class ICartesianSolver
         /**
          * @brief Perform differential inverse kinematics
          *
-         * @param q Vector describing current position in joint space (degrees).
+         * @param q Vector describing current position in joint space (meters or degrees).
          * @param xdot 6-element vector describing desired velocity in cartesian space; first
          * three elements denote translational velocity (meters/second), last three denote
          * angular velocity (radians/second).
-         * @param qdot Vector describing target velocity in joint space (degrees/second).
+         * @param qdot Vector describing target velocity in joint space (meters/second or degrees/second).
          * @param frame Points at the @ref reference_frame the desired position is expressed in.
          *
          * @return true on success, false otherwise
@@ -147,7 +149,7 @@ class ICartesianSolver
          *
          * Assumes null joint velocities and accelerations, and no external forces.
          *
-         * @param q Vector describing current position in joint space (degrees).
+         * @param q Vector describing current position in joint space (meters or degrees).
          * @param t 6-element vector describing desired forces in cartesian space; first
          * three elements denote translational acceleration (meters/second²), last three denote
          * angular acceleration (radians/second²).
@@ -159,9 +161,9 @@ class ICartesianSolver
         /**
          * @brief Perform inverse dynamics
          *
-         * @param q Vector describing current position in joint space (degrees).
-         * @param qdot Vector describing current velocity in joint space (degrees/second).
-         * @param qdotdot Vector describing current acceleration in joint space (degrees/second²).
+         * @param q Vector describing current position in joint space (meters or degrees).
+         * @param qdot Vector describing current velocity in joint space (meters/second or degrees/second).
+         * @param qdotdot Vector describing current acceleration in joint space (meters/second² or degrees/second²).
          * @param fexts vector of external forces applied to each robot segment, expressed in
          * cartesian space; first three elements denote translational acceleration (meters/second²),
          * last three denote angular acceleration (radians/second²).
@@ -172,16 +174,6 @@ class ICartesianSolver
          * @return true on success, false otherwise
          */
         virtual bool invDyn(const std::vector<double> &q,const std::vector<double> &qdot, const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t) = 0;
-
-        /**
-         * @brief Set joint limits
-         *
-         * @param qMin Vector of minimum joint values expressed in degrees.
-         * @param qMax Vector of maximum joint values expressed in degrees.
-         *
-         * @return true on success, false otherwise
-         */
-        virtual bool setLimits(const std::vector<double> &qMin, const std::vector<double> &qMax) = 0;
 
 };
 

@@ -4,7 +4,7 @@
 
 #include <string>
 
-#include <ColorDebug.hpp>
+#include <ColorDebug.h>
 
 // ------------------- DeviceDriver Related ------------------------------------
 
@@ -22,6 +22,7 @@ bool roboticslab::CartesianControlServer::open(yarp::os::Searchable& config)
             yarp::os::Property p;
             p.fromString(config.toString());
             p.put("device", name->toString());
+            p.setMonitor(config.getMonitor(), name->toString().c_str());
             cartesianControlDevice.open(p);
         }
         else
@@ -63,9 +64,9 @@ bool roboticslab::CartesianControlServer::open(yarp::os::Searchable& config)
     rpcServer.setReader(*rpcResponder);
     commandPort.useCallback(*streamResponder);
 
-    int periodInMs = config.check("fkPeriod", yarp::os::Value(DEFAULT_MS), "FK stream period").asInt();
+    int periodInMs = config.check("fkPeriod", yarp::os::Value(DEFAULT_MS), "FK stream period (milliseconds)").asInt();
 
-    if (periodInMs >= 0)
+    if (periodInMs > 0)
     {
         fkOutPort.open(prefix + "/state:o");
 
@@ -78,7 +79,7 @@ bool roboticslab::CartesianControlServer::open(yarp::os::Searchable& config)
     }
 
     // check angle representation, leave this block last to allow inner return instruction
-    if (config.check("angleRepr", angleRepr))
+    if (config.check("angleRepr", angleRepr, "angle representation for transform port"))
     {
         std::string angleReprStr = angleRepr->asString();
         KinRepresentation::orientation_system orient;
