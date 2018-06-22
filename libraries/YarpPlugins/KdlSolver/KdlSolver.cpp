@@ -56,6 +56,24 @@ bool roboticslab::KdlSolver::getMatrixFromProperties(yarp::os::Searchable &optio
     return true;
 }
 
+// -----------------------------------------------------------------------------
+
+bool roboticslab::KdlSolver::parseLmaFromBottle(const yarp::os::Bottle & b, Eigen::Matrix<double, 6, 1> & L)
+{
+    if (b.size() != 6)
+    {
+        CD_WARNING("Wrong bottle size (expected: %d, was: %d).", 6, b.size());
+        return false;
+    }
+
+    for (int i = 0; i < b.size(); i++)
+    {
+        L(i) = b.get(i).asDouble();
+    }
+
+    return true;
+}
+
 // ------------------- DeviceDriver Related ------------------------------------
 
 bool roboticslab::KdlSolver::open(yarp::os::Searchable& config)
@@ -311,7 +329,30 @@ bool roboticslab::KdlSolver::open(yarp::os::Searchable& config)
     double eps = fullConfig.check("eps", yarp::os::Value(DEFAULT_EPS), "IK solver precision (meters)").asDouble();
     int maxIter = fullConfig.check("maxIter", yarp::os::Value(DEFAULT_MAXITER), "maximum number of iterations").asInt();
 
-    impl = new KdlSolverImpl(chain, gravity, qMin, qMax, eps, maxIter);
+    //-- IK solver algorithm.
+    std::string ikSolver = fullConfig.check("ik", yarp::os::Value(DEFAULT_IK_SOLVER), "IK solver algorithm (lma, nrjl)").asString();
+
+    if (ikSolver != "lma" && ikSolver != "nrjl")
+    {
+        CD_ERROR("Unsupported IK solver algorithm: %s.\n", ikSolver.c_str());
+        return false;
+    }
+
+    Eigen::Matrix<double, 6, 1> L;
+
+    if (ikSolver == "lma")
+    {
+        std::string weightsStr = fullConfig.check("weights", yarp::os::Value(DEFAULT_LMA_WEIGHTS), "LMA algorithm weights (bottle of 6 doubles)").asString();
+        yarp::os::Bottle weights(weightsStr);
+
+        if (!parseLmaFromBottle(weights, L))
+        {
+            CD_ERROR("Unable to parse LMA weights.\n");
+            return false;
+        }
+    }
+
+    impl = new KdlSolverImpl(chain, gravity, qMin, qMax, eps, maxIter, ikSolver, L);
 
     return true;
 }

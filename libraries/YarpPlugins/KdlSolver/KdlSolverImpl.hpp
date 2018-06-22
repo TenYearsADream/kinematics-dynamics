@@ -3,11 +3,15 @@
 #ifndef __KDL_SOLVER_IMPL_HPP__
 #define __KDL_SOLVER_IMPL_HPP__
 
+#include <string>
+
 #include <yarp/os/Semaphore.h>
 
 #include <kdl/frames.hpp>
 #include <kdl/chain.hpp>
 #include <kdl/jntarray.hpp>
+
+#include <Eigen/Core> // Eigen::Matrix
 
 #include "ICartesianSolver.h"
 
@@ -22,7 +26,7 @@ class KdlSolverImpl
 {
 public:
 
-    KdlSolverImpl(const KDL::Chain & chain, const KDL::Vector & gravity, const KDL::JntArray & qMin, const KDL::JntArray & qMax, double eps, int maxIter);
+    KdlSolverImpl(const KDL::Chain & chain, const KDL::Vector & gravity, const KDL::JntArray & qMin, const KDL::JntArray & qMax, double eps, int maxIter, const std::string & ikSolver, const Eigen::Matrix<double, 6, 1> & L);
 
     // Get number of joints for which the solver has been configured.
     bool getNumJoints(int* numJoints);
@@ -81,6 +85,12 @@ private:
 
     /** Maximum number of iterations to calculate inverse kinematics. **/
     unsigned int maxIter;
+
+    /** User-selected IK solver algorithm. **/
+    std::string ikSolver;
+
+    /** Vector of weights (LMA algorithm). **/
+    Eigen::Matrix<double, 6, 1> L;
 };
 
 }  // namespace roboticslab

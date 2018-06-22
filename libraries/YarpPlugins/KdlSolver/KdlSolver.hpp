@@ -9,6 +9,8 @@
 #include <yarp/dev/DeviceDriver.h>
 #include <yarp/sig/Matrix.h>
 
+#include <Eigen/Core> // Eigen::Matrix
+
 #include "ICartesianSolver.h"
 #include "KinematicRepresentation.hpp"
 
@@ -22,6 +24,8 @@
 
 #define DEFAULT_EPS 1e-9
 #define DEFAULT_MAXITER 1000
+#define DEFAULT_IK_SOLVER "lma"
+#define DEFAULT_LMA_WEIGHTS "1 1 1 0.1 0.1 0.1"
 
 namespace roboticslab
 {
@@ -103,6 +107,8 @@ public:
 private:
 
     bool getMatrixFromProperties(yarp::os::Searchable &options, std::string &tag, yarp::sig::Matrix &H);
+
+    bool parseLmaFromBottle(const yarp::os::Bottle & b, Eigen::Matrix<double, 6, 1> & L);
 
     KdlSolverImpl * impl;
 
