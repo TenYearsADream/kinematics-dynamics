@@ -73,13 +73,19 @@ bool roboticslab::BasicCartesianControl::open(yarp::os::Searchable& config)
     iEncoders->getAxes(&numRobotJoints);
     CD_INFO("numRobotJoints: %d.\n",numRobotJoints);
 
-    yarp::os::Bottle qMin, qMax;
+    qMin.resize(numRobotJoints);
+    qMax.resize(numRobotJoints);
+
+    yarp::os::Bottle bMin, bMax;
+
     for(unsigned int joint=0;joint<numRobotJoints;joint++)
     {
         double min, max;
         iControlLimits->getLimits(joint,&min,&max);
-        qMin.addDouble(min);
-        qMax.addDouble(max);
+        qMin[joint] = min;
+        qMax[joint] = max;
+        bMin.addDouble(min);
+        bMax.addDouble(max);
         CD_INFO("Joint %d limits: [%f,%f]\n",joint,min,max);
     }
 
@@ -88,8 +94,8 @@ bool roboticslab::BasicCartesianControl::open(yarp::os::Searchable& config)
     yarp::os::Property solverOptions;
     solverOptions.fromString( config.toString() );
     solverOptions.put("device", solverStr);
-    solverOptions.put("mins", yarp::os::Value::makeList(qMin.toString().c_str()));
-    solverOptions.put("maxs", yarp::os::Value::makeList(qMax.toString().c_str()));
+    solverOptions.put("mins", yarp::os::Value::makeList(bMin.toString().c_str()));
+    solverOptions.put("maxs", yarp::os::Value::makeList(bMax.toString().c_str()));
     solverOptions.put("angleRepr", angleRepr);
     solverOptions.setMonitor(config.getMonitor(), solverStr.c_str());
 
