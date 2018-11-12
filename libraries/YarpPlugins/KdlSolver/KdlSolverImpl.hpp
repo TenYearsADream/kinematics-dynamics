@@ -3,15 +3,12 @@
 #ifndef __KDL_SOLVER_IMPL_HPP__
 #define __KDL_SOLVER_IMPL_HPP__
 
-#include <string>
-
 #include <yarp/os/Semaphore.h>
 
-#include <kdl/frames.hpp>
 #include <kdl/chain.hpp>
-#include <kdl/jntarray.hpp>
-
-#include <Eigen/Core> // Eigen::Matrix
+#include <kdl/chainfksolver.hpp>
+#include <kdl/chainiksolver.hpp>
+#include <kdl/chainidsolver.hpp>
 
 #include "ICartesianSolver.h"
 
@@ -26,7 +23,7 @@ class KdlSolverImpl
 {
 public:
 
-    KdlSolverImpl(const KDL::Chain & chain, const KDL::Vector & gravity, const KDL::JntArray & qMin, const KDL::JntArray & qMax, double eps, int maxIter, const std::string & ikSolver, const Eigen::Matrix<double, 6, 1> & L);
+    KdlSolverImpl(const KDL::Chain & chain, KDL::ChainFkSolverPos * fkSolverPos, KDL::ChainIkSolverPos * ikSolverPos, KDL::ChainIkSolverVel * ikSolverVel, KDL::ChainIdSolver * idSolver);
 
     // Get number of joints for which the solver has been configured.
     bool getNumJoints(int* numJoints);
@@ -60,9 +57,6 @@ public:
 
 private:
 
-    KDL::Chain getChain() const;
-    void setChain(const KDL::Chain & chain);
-
     mutable yarp::os::Semaphore mutex;
 
     /** The chain. **/
@@ -71,26 +65,10 @@ private:
     /** To store a copy of the original chain. **/
     KDL::Chain originalChain;
 
-    /** Define used gravity for the chain, important to think of DH. **/
-    KDL::Vector gravity;
-
-    /** Minimum joint limits. **/
-    KDL::JntArray qMin;
-
-    /** Maximum joint limits. **/
-    KDL::JntArray qMax;
-
-    /** Precision value used by the IK solver. **/
-    double eps;
-
-    /** Maximum number of iterations to calculate inverse kinematics. **/
-    unsigned int maxIter;
-
-    /** User-selected IK solver algorithm. **/
-    std::string ikSolver;
-
-    /** Vector of weights (LMA algorithm). **/
-    Eigen::Matrix<double, 6, 1> L;
+    KDL::ChainFkSolverPos * fkSolverPos;
+    KDL::ChainIkSolverPos * ikSolverPos;
+    KDL::ChainIkSolverVel * ikSolverVel;
+    KDL::ChainIdSolver * idSolver;
 };
 
 }  // namespace roboticslab

@@ -3,13 +3,8 @@
 #ifndef __KDL_SOLVER_HPP__
 #define __KDL_SOLVER_HPP__
 
-#include <string>
-
 #include <yarp/os/Searchable.h>
 #include <yarp/dev/DeviceDriver.h>
-#include <yarp/sig/Matrix.h>
-
-#include <Eigen/Core> // Eigen::Matrix
 
 #include "ICartesianSolver.h"
 #include "KinematicRepresentation.hpp"
@@ -105,10 +100,6 @@ public:
     virtual bool close();
 
 private:
-
-    bool getMatrixFromProperties(yarp::os::Searchable &options, std::string &tag, yarp::sig::Matrix &H);
-
-    bool parseLmaFromBottle(const yarp::os::Bottle & b, Eigen::Matrix<double, 6, 1> & L);
 
     KdlSolverImpl * impl;
 

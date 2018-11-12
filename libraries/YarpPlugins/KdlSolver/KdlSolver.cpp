@@ -15,66 +15,84 @@
 #include <kdl/rigidbodyinertia.hpp>
 #include <kdl/rotationalinertia.hpp>
 
+#include <kdl/chainfksolver.hpp>
+#include <kdl/chainfksolverpos_recursive.hpp>
+#include <kdl/chainiksolver.hpp>
+#include <kdl/chainiksolverpos_lma.hpp>
+#include <kdl/chainiksolverpos_nr_jl.hpp>
+#include <kdl/chainiksolvervel_pinv.hpp>
+#include <kdl/chainidsolver.hpp>
+#include <kdl/chainidsolver_recursive_newton_euler.hpp>
+
+#include <Eigen/Core> // Eigen::Matrix
+
 #include <ColorDebug.h>
 
 #include "KdlSolverImpl.hpp"
 
 // ------------------- KdlSolver Related ------------------------------------
 
+namespace
+{
+    KDL::ChainFkSolverPos * fkSolverPos;
+    KDL::ChainIkSolverPos * ikSolverPos;
+    KDL::ChainIkSolverVel * ikSolverVel;
+    KDL::ChainIdSolver * idSolver;
+
+    bool getMatrixFromProperties(const yarp::os::Searchable & options, const std::string & tag, yarp::sig::Matrix & H)
+    {
+        yarp::os::Bottle * bH = options.find(tag).asList();
+
+        if (!bH)
+        {
+            CD_WARNING("Unable to find tag %s.\n", tag.c_str());
+            return false;
+        }
+
+        int i = 0;
+        int j = 0;
+
+        H.zero();
+
+        for (int cnt = 0; cnt < bH->size() && cnt < H.rows() * H.cols(); cnt++)
+        {
+            H(i, j) = bH->get(cnt).asDouble();
+
+            if (++j >= H.cols())
+            {
+                i++;
+                j = 0;
+            }
+        }
+
+        return true;
+    }
+
+    bool parseLmaFromBottle(const yarp::os::Bottle & b, Eigen::Matrix<double, 6, 1> & L)
+    {
+        if (b.size() != 6)
+        {
+            CD_WARNING("Wrong bottle size (expected: %d, was: %d).\n", 6, b.size());
+            return false;
+        }
+
+        for (int i = 0; i < b.size(); i++)
+        {
+            L(i) = b.get(i).asDouble();
+        }
+
+        return true;
+    }
+}
+
+// -----------------------------------------------------------------------------
+
 roboticslab::KdlSolver::KdlSolver()
-    : impl(0),
+    : impl(NULL),
       orient(KinRepresentation::AXIS_ANGLE_SCALED)
 {}
 
 // -----------------------------------------------------------------------------
-
-bool roboticslab::KdlSolver::getMatrixFromProperties(yarp::os::Searchable &options, std::string &tag, yarp::sig::Matrix &H)
-{
-    yarp::os::Bottle *bH = options.find(tag).asList();
-
-    if (!bH)
-    {
-        return false;
-    }
-
-    int i = 0;
-    int j = 0;
-
-    H.zero();
-
-    for (int cnt = 0; cnt < bH->size() && cnt < H.rows() * H.cols(); cnt++)
-    {
-        H(i, j) = bH->get(cnt).asDouble();
-
-        if (++j >= H.cols())
-        {
-            i++;
-            j = 0;
-        }
-    }
-
-    return true;
-}
-
-// -----------------------------------------------------------------------------
-
-bool roboticslab::KdlSolver::parseLmaFromBottle(const yarp::os::Bottle & b, Eigen::Matrix<double, 6, 1> & L)
-{
-    if (b.size() != 6)
-    {
-        CD_WARNING("Wrong bottle size (expected: %d, was: %d).", 6, b.size());
-        return false;
-    }
-
-    for (int i = 0; i < b.size(); i++)
-    {
-        L(i) = b.get(i).asDouble();
-    }
-
-    return true;
-}
-
-// ------------------- DeviceDriver Related ------------------------------------
 
 bool roboticslab::KdlSolver::open(yarp::os::Searchable& config)
 {
@@ -278,81 +296,86 @@ bool roboticslab::KdlSolver::open(yarp::os::Searchable& config)
     chain.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::None), KDL::Frame(kdlRotN, kdlVecN)));
     CD_INFO("HN:\n%s\n[%s]\n", ymHN.toString().c_str(), defaultYmHN.toString().c_str());
 
-    //--
     CD_INFO("Chain number of segments (post- H0 and HN): %d\n", chain.getNrOfSegments());
     CD_INFO("Chain number of joints (post- H0 and HN): %d\n", chain.getNrOfJoints());
 
-    KDL::JntArray qMin, qMax;
-
-    qMax.resize(chain.getNrOfJoints());
-    qMin.resize(chain.getNrOfJoints());
-
-    //-- Joint limits
-    if (!fullConfig.check("mins") || !fullConfig.check("maxs"))
-    {
-        CD_ERROR("Missing 'mins' and/or 'maxs' option(s).\n");
-        return false;
-    }
-
-    yarp::os::Bottle *maxs = fullConfig.findGroup("maxs", "joint upper limits (meters or degrees)").get(1).asList();
-    yarp::os::Bottle *mins = fullConfig.findGroup("mins", "joint lower limits (meters or degrees)").get(1).asList();
-
-    if (maxs == YARP_NULLPTR || mins == YARP_NULLPTR)
-    {
-        CD_ERROR("Empty 'mins' and/or 'maxs' option(s)\n");
-        return false;
-    }
-
-    if (maxs->size() != chain.getNrOfJoints() || mins->size() != chain.getNrOfJoints())
-    {
-        CD_ERROR("chain.getNrOfJoints (%d) != maxs.size(), mins.size() (%d, %d)\n", chain.getNrOfJoints(), maxs->size(), mins->size());
-        return false;
-    }
-
-    for (int motor = 0; motor < chain.getNrOfJoints(); motor++)
-    {
-        qMax(motor) = maxs->get(motor).asDouble();
-        qMin(motor) = mins->get(motor).asDouble();
-
-        if (qMin(motor) == qMax(motor))
-        {
-            CD_WARNING("qMin[%1$d] == qMax[%1$d] (%2$f)\n", motor, qMin(motor));
-        }
-        else if (qMin(motor) > qMax(motor))
-        {
-            CD_ERROR("qMin[%1$d] > qMax[%1$d] (%2$f > %3$f)\n", motor, qMin(motor), qMax(motor));
-            return false;
-        }
-    }
-
-    //-- Precision and max iterations for IK solver.
-    double eps = fullConfig.check("eps", yarp::os::Value(DEFAULT_EPS), "IK solver precision (meters)").asDouble();
-    int maxIter = fullConfig.check("maxIter", yarp::os::Value(DEFAULT_MAXITER), "maximum number of iterations").asInt();
+    fkSolverPos = new KDL::ChainFkSolverPos_recursive(chain);
+    ikSolverVel = new KDL::ChainIkSolverVel_pinv(chain);
+    idSolver = new KDL::ChainIdSolver_RNE(chain, gravity);
 
     //-- IK solver algorithm.
-    std::string ikSolver = fullConfig.check("ik", yarp::os::Value(DEFAULT_IK_SOLVER), "IK solver algorithm (lma, nrjl)").asString();
+    std::string ik = fullConfig.check("ik", yarp::os::Value(DEFAULT_IK_SOLVER), "IK solver algorithm (lma, nrjl)").asString();
 
-    if (ikSolver != "lma" && ikSolver != "nrjl")
-    {
-        CD_ERROR("Unsupported IK solver algorithm: %s.\n", ikSolver.c_str());
-        return false;
-    }
-
-    Eigen::Matrix<double, 6, 1> L;
-
-    if (ikSolver == "lma")
+    if (ik == "lma")
     {
         std::string weightsStr = fullConfig.check("weights", yarp::os::Value(DEFAULT_LMA_WEIGHTS), "LMA algorithm weights (bottle of 6 doubles)").asString();
         yarp::os::Bottle weights(weightsStr);
+        Eigen::Matrix<double, 6, 1> L;
 
         if (!parseLmaFromBottle(weights, L))
         {
             CD_ERROR("Unable to parse LMA weights.\n");
             return false;
         }
+
+        ikSolverPos = new KDL::ChainIkSolverPos_LMA(chain, L);
+    }
+    else if (ik == "nrjl")
+    {
+        KDL::JntArray qMax(chain.getNrOfJoints());
+        KDL::JntArray qMin(chain.getNrOfJoints());
+
+        //-- Joint limits.
+        if (!fullConfig.check("mins") || !fullConfig.check("maxs"))
+        {
+            CD_ERROR("Missing 'mins' and/or 'maxs' option(s).\n");
+            return false;
+        }
+
+        yarp::os::Bottle *maxs = fullConfig.findGroup("maxs", "joint upper limits (meters or degrees)").get(1).asList();
+        yarp::os::Bottle *mins = fullConfig.findGroup("mins", "joint lower limits (meters or degrees)").get(1).asList();
+
+        if (maxs == YARP_NULLPTR || mins == YARP_NULLPTR)
+        {
+            CD_ERROR("Empty 'mins' and/or 'maxs' option(s)\n");
+            return false;
+        }
+
+        if (maxs->size() < chain.getNrOfJoints() || mins->size() < chain.getNrOfJoints())
+        {
+            CD_ERROR("chain.getNrOfJoints (%d) > maxs.size() or mins.size() (%d, %d)\n", chain.getNrOfJoints(), maxs->size(), mins->size());
+            return false;
+        }
+
+        for (int motor = 0; motor < chain.getNrOfJoints(); motor++)
+        {
+            qMax(motor) = maxs->get(motor).asDouble();
+            qMin(motor) = mins->get(motor).asDouble();
+
+            if (qMin(motor) == qMax(motor))
+            {
+                CD_WARNING("qMin[%1$d] == qMax[%1$d] (%2$f)\n", motor, qMin(motor));
+            }
+            else if (qMin(motor) > qMax(motor))
+            {
+                CD_ERROR("qMin[%1$d] > qMax[%1$d] (%2$f > %3$f)\n", motor, qMin(motor), qMax(motor));
+                return false;
+            }
+        }
+
+        //-- Precision and max iterations.
+        double eps = fullConfig.check("eps", yarp::os::Value(DEFAULT_EPS), "IK solver precision (meters)").asDouble();
+        double maxIter = fullConfig.check("maxIter", yarp::os::Value(DEFAULT_MAXITER), "maximum number of iterations").asInt();
+
+        ikSolverPos = new KDL::ChainIkSolverPos_NR_JL(chain, qMin, qMax, *fkSolverPos, *ikSolverVel, maxIter, eps);
+    }
+    else
+    {
+        CD_ERROR("Unsupported IK solver algorithm: %s.\n", ik.c_str());
+        return false;
     }
 
-    impl = new KdlSolverImpl(chain, gravity, qMin, qMax, eps, maxIter, ikSolver, L);
+    impl = new KdlSolverImpl(chain, fkSolverPos, ikSolverPos, ikSolverVel, idSolver);
 
     return true;
 }
@@ -361,10 +384,28 @@ bool roboticslab::KdlSolver::open(yarp::os::Searchable& config)
 
 bool roboticslab::KdlSolver::close()
 {
-    if (impl != 0)
+    if (impl != NULL)
     {
         delete impl;
-        impl = 0;
+        impl = NULL;
+    }
+
+    if (ikSolverPos != NULL)
+    {
+        delete ikSolverPos;
+        ikSolverPos = NULL;
+    }
+
+    if (ikSolverVel != NULL)
+    {
+        delete ikSolverVel;
+        ikSolverVel = NULL;
+    }
+
+    if (idSolver != NULL)
+    {
+        delete idSolver;
+        idSolver = NULL;
     }
 
     return true;
