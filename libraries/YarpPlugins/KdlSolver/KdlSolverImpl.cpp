@@ -14,9 +14,9 @@
 
 // ------------------- KdlSolverImpl Related ------------------------------------
 
-roboticslab::KdlSolverImpl::KdlSolverImpl(const KDL::Chain & chain, KDL::ChainFkSolverPos * _fkSolverPos, KDL::ChainIkSolverPos * _ikSolverPos, KDL::ChainIkSolverVel * _ikSolverVel, KDL::ChainIdSolver * _idSolver)
-    : chain(chain),
-      originalChain(chain),
+roboticslab::KdlSolverImpl::KdlSolverImpl(KDL::Chain * _chain, KDL::ChainFkSolverPos * _fkSolverPos, KDL::ChainIkSolverPos * _ikSolverPos, KDL::ChainIkSolverVel * _ikSolverVel, KDL::ChainIdSolver * _idSolver)
+    : chain(_chain),
+      originalChain(*_chain),
       fkSolverPos(_fkSolverPos),
       ikSolverPos(_ikSolverPos),
       ikSolverVel(_ikSolverVel),
@@ -27,7 +27,7 @@ roboticslab::KdlSolverImpl::KdlSolverImpl(const KDL::Chain & chain, KDL::ChainFk
 
 bool roboticslab::KdlSolverImpl::getNumJoints(int* numJoints)
 {
-    *numJoints = chain.getNrOfJoints();
+    *numJoints = chain->getNrOfJoints();
     return true;
 }
 
@@ -39,7 +39,7 @@ bool roboticslab::KdlSolverImpl::appendLink(const std::vector<double>& x)
 
     mutex.wait();
 
-    chain.addSegment(KDL::Segment(KDL::Joint(KDL::Joint::None), frameX));
+    chain->addSegment(KDL::Segment(KDL::Joint(KDL::Joint::None), frameX));
 
     fkSolverPos->updateInternalDataStructures();
     ikSolverPos->updateInternalDataStructures();
@@ -57,7 +57,7 @@ bool roboticslab::KdlSolverImpl::restoreOriginalChain()
 {
     mutex.wait();
 
-    chain = originalChain;
+    *chain = originalChain;
 
     fkSolverPos->updateInternalDataStructures();
     ikSolverPos->updateInternalDataStructures();
@@ -87,9 +87,9 @@ bool roboticslab::KdlSolverImpl::changeOrigin(const std::vector<double> &x_old_o
 
 bool roboticslab::KdlSolverImpl::fwdKin(const std::vector<double> &q, std::vector<double> &x)
 {
-    KDL::JntArray qInRad(chain.getNrOfJoints());
+    KDL::JntArray qInRad(chain->getNrOfJoints());
 
-    for (int motor = 0; motor < chain.getNrOfJoints(); motor++)
+    for (int motor = 0; motor < chain->getNrOfJoints(); motor++)
     {
         qInRad(motor) = KinRepresentation::degToRad(q[motor]);
     }
@@ -125,14 +125,14 @@ bool roboticslab::KdlSolverImpl::invKin(const std::vector<double> &xd, const std
         const ICartesianSolver::reference_frame frame)
 {
     KDL::Frame frameXd = KdlVectorConverter::vectorToFrame(xd);
-    KDL::JntArray qGuessInRad(chain.getNrOfJoints());
+    KDL::JntArray qGuessInRad(chain->getNrOfJoints());
 
-    for (int motor = 0; motor < chain.getNrOfJoints(); motor++)
+    for (int motor = 0; motor < chain->getNrOfJoints(); motor++)
     {
         qGuessInRad(motor) = KinRepresentation::degToRad(qGuess[motor]);
     }
 
-    KDL::JntArray kdlq(chain.getNrOfJoints());
+    KDL::JntArray kdlq(chain->getNrOfJoints());
 
     mutex.wait();
 
@@ -163,9 +163,9 @@ bool roboticslab::KdlSolverImpl::invKin(const std::vector<double> &xd, const std
         CD_WARNING("%d: %s\n", ret, ikSolverPos->strError(ret));
     }
 
-    q.resize(chain.getNrOfJoints());
+    q.resize(chain->getNrOfJoints());
 
-    for (int motor = 0; motor < chain.getNrOfJoints(); motor++)
+    for (int motor = 0; motor < chain->getNrOfJoints(); motor++)
     {
         q[motor] = KinRepresentation::radToDeg(kdlq(motor));
     }
@@ -178,9 +178,9 @@ bool roboticslab::KdlSolverImpl::invKin(const std::vector<double> &xd, const std
 bool roboticslab::KdlSolverImpl::diffInvKin(const std::vector<double> &q, const std::vector<double> &xdot, std::vector<double> &qdot,
         const ICartesianSolver::reference_frame frame)
 {
-    KDL::JntArray qInRad(chain.getNrOfJoints());
+    KDL::JntArray qInRad(chain->getNrOfJoints());
 
-    for (int motor = 0; motor < chain.getNrOfJoints(); motor++)
+    for (int motor = 0; motor < chain->getNrOfJoints(); motor++)
     {
         qInRad(motor) = KinRepresentation::degToRad(q[motor]);
     }
@@ -205,7 +205,7 @@ bool roboticslab::KdlSolverImpl::diffInvKin(const std::vector<double> &q, const 
         return false;
     }
 
-    KDL::JntArray qDotOutRadS(chain.getNrOfJoints());
+    KDL::JntArray qDotOutRadS(chain->getNrOfJoints());
 
     int ret = ikSolverVel->CartToJnt(qInRad, kdlxdot, qDotOutRadS);
 
@@ -221,9 +221,9 @@ bool roboticslab::KdlSolverImpl::diffInvKin(const std::vector<double> &q, const 
         CD_WARNING("%d: %s\n", ret, ikSolverVel->strError(ret));
     }
 
-    qdot.resize(chain.getNrOfJoints());
+    qdot.resize(chain->getNrOfJoints());
 
-    for (int motor = 0; motor < chain.getNrOfJoints(); motor++)
+    for (int motor = 0; motor < chain->getNrOfJoints(); motor++)
     {
         qdot[motor] = KinRepresentation::radToDeg(qDotOutRadS(motor));
     }
@@ -235,20 +235,20 @@ bool roboticslab::KdlSolverImpl::diffInvKin(const std::vector<double> &q, const 
 
 bool roboticslab::KdlSolverImpl::invDyn(const std::vector<double> &q,std::vector<double> &t)
 {
-    KDL::JntArray qInRad(chain.getNrOfJoints());
+    KDL::JntArray qInRad(chain->getNrOfJoints());
 
-    for (int motor = 0; motor < chain.getNrOfJoints(); motor++)
+    for (int motor = 0; motor < chain->getNrOfJoints(); motor++)
     {
         qInRad(motor) = KinRepresentation::degToRad(q[motor]);
     }
 
-    KDL::JntArray qdotInRad(chain.getNrOfJoints());
-    KDL::JntArray qdotdotInRad(chain.getNrOfJoints());
+    KDL::JntArray qdotInRad(chain->getNrOfJoints());
+    KDL::JntArray qdotdotInRad(chain->getNrOfJoints());
 
     mutex.wait();
 
-    KDL::Wrenches wrenches(chain.getNrOfSegments(), KDL::Wrench::Zero());
-    KDL::JntArray kdlt(chain.getNrOfJoints());
+    KDL::Wrenches wrenches(chain->getNrOfSegments(), KDL::Wrench::Zero());
+    KDL::JntArray kdlt(chain->getNrOfJoints());
 
     int ret = idSolver->CartToJnt(qInRad, qdotInRad, qdotdotInRad, wrenches, kdlt);
 
@@ -264,9 +264,9 @@ bool roboticslab::KdlSolverImpl::invDyn(const std::vector<double> &q,std::vector
         CD_WARNING("%d: %s\n", ret, idSolver->strError(ret));
     }
 
-    t.resize(chain.getNrOfJoints());
+    t.resize(chain->getNrOfJoints());
 
-    for (int motor = 0; motor < chain.getNrOfJoints(); motor++)
+    for (int motor = 0; motor < chain->getNrOfJoints(); motor++)
     {
         t[motor] = kdlt(motor);
     }
@@ -278,30 +278,30 @@ bool roboticslab::KdlSolverImpl::invDyn(const std::vector<double> &q,std::vector
 
 bool roboticslab::KdlSolverImpl::invDyn(const std::vector<double> &q, const std::vector<double> &qdot, const std::vector<double> &qdotdot, const std::vector< std::vector<double> > &fexts, std::vector<double> &t)
 {
-    KDL::JntArray qInRad(chain.getNrOfJoints());
+    KDL::JntArray qInRad(chain->getNrOfJoints());
 
-    for (int motor = 0; motor < chain.getNrOfJoints(); motor++)
+    for (int motor = 0; motor < chain->getNrOfJoints(); motor++)
     {
         qInRad(motor) = KinRepresentation::degToRad(q[motor]);
     }
 
-    KDL::JntArray qdotInRad(chain.getNrOfJoints());
+    KDL::JntArray qdotInRad(chain->getNrOfJoints());
 
-    for (int motor = 0; motor < chain.getNrOfJoints(); motor++)
+    for (int motor = 0; motor < chain->getNrOfJoints(); motor++)
     {
         qdotInRad(motor) = KinRepresentation::degToRad(qdot[motor]);
     }
 
-    KDL::JntArray qdotdotInRad(chain.getNrOfJoints());
+    KDL::JntArray qdotdotInRad(chain->getNrOfJoints());
 
-    for (int motor = 0; motor < chain.getNrOfJoints(); motor++)
+    for (int motor = 0; motor < chain->getNrOfJoints(); motor++)
     {
         qdotdotInRad(motor) = KinRepresentation::degToRad(qdotdot[motor]);
     }
 
     mutex.wait();
 
-    KDL::Wrenches wrenches(chain.getNrOfSegments(), KDL::Wrench::Zero());
+    KDL::Wrenches wrenches(chain->getNrOfSegments(), KDL::Wrench::Zero());
 
     for (int i = 0; i < fexts.size(); i++)
     {
@@ -311,7 +311,7 @@ bool roboticslab::KdlSolverImpl::invDyn(const std::vector<double> &q, const std:
         );
     }
 
-    KDL::JntArray kdlt(chain.getNrOfJoints());
+    KDL::JntArray kdlt(chain->getNrOfJoints());
 
     int ret = idSolver->CartToJnt(qInRad, qdotInRad, qdotdotInRad, wrenches, kdlt);
 
@@ -327,9 +327,9 @@ bool roboticslab::KdlSolverImpl::invDyn(const std::vector<double> &q, const std:
         CD_WARNING("%d: %s\n", ret, idSolver->strError(ret));
     }
 
-    t.resize(chain.getNrOfJoints());
+    t.resize(chain->getNrOfJoints());
 
-    for (int motor = 0; motor < chain.getNrOfJoints(); motor++)
+    for (int motor = 0; motor < chain->getNrOfJoints(); motor++)
     {
         t[motor] = kdlt(motor);
     }

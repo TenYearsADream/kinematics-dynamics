@@ -34,6 +34,7 @@
 
 namespace
 {
+    KDL::Chain * chainClone;
     KDL::ChainFkSolverPos * fkSolverPos;
     KDL::ChainIkSolverPos * ikSolverPos;
     KDL::ChainIkSolverVel * ikSolverVel;
@@ -299,9 +300,11 @@ bool roboticslab::KdlSolver::open(yarp::os::Searchable& config)
     CD_INFO("Chain number of segments (post- H0 and HN): %d\n", chain.getNrOfSegments());
     CD_INFO("Chain number of joints (post- H0 and HN): %d\n", chain.getNrOfJoints());
 
-    fkSolverPos = new KDL::ChainFkSolverPos_recursive(chain);
-    ikSolverVel = new KDL::ChainIkSolverVel_pinv(chain);
-    idSolver = new KDL::ChainIdSolver_RNE(chain, gravity);
+    chainClone = new KDL::Chain(chain);
+
+    fkSolverPos = new KDL::ChainFkSolverPos_recursive(*chainClone);
+    ikSolverVel = new KDL::ChainIkSolverVel_pinv(*chainClone);
+    idSolver = new KDL::ChainIdSolver_RNE(*chainClone, gravity);
 
     //-- IK solver algorithm.
     std::string ik = fullConfig.check("ik", yarp::os::Value(DEFAULT_IK_SOLVER), "IK solver algorithm (lma, nrjl)").asString();
@@ -318,7 +321,7 @@ bool roboticslab::KdlSolver::open(yarp::os::Searchable& config)
             return false;
         }
 
-        ikSolverPos = new KDL::ChainIkSolverPos_LMA(chain, L);
+        ikSolverPos = new KDL::ChainIkSolverPos_LMA(*chainClone, L);
     }
     else if (ik == "nrjl")
     {
@@ -367,7 +370,7 @@ bool roboticslab::KdlSolver::open(yarp::os::Searchable& config)
         double eps = fullConfig.check("eps", yarp::os::Value(DEFAULT_EPS), "IK solver precision (meters)").asDouble();
         double maxIter = fullConfig.check("maxIter", yarp::os::Value(DEFAULT_MAXITER), "maximum number of iterations").asInt();
 
-        ikSolverPos = new KDL::ChainIkSolverPos_NR_JL(chain, qMin, qMax, *fkSolverPos, *ikSolverVel, maxIter, eps);
+        ikSolverPos = new KDL::ChainIkSolverPos_NR_JL(*chainClone, qMin, qMax, *fkSolverPos, *ikSolverVel, maxIter, eps);
     }
     else
     {
@@ -375,7 +378,7 @@ bool roboticslab::KdlSolver::open(yarp::os::Searchable& config)
         return false;
     }
 
-    impl = new KdlSolverImpl(chain, fkSolverPos, ikSolverPos, ikSolverVel, idSolver);
+    impl = new KdlSolverImpl(chainClone, fkSolverPos, ikSolverPos, ikSolverVel, idSolver);
 
     return true;
 }
@@ -406,6 +409,12 @@ bool roboticslab::KdlSolver::close()
     {
         delete idSolver;
         idSolver = NULL;
+    }
+
+    if (chainClone != NULL)
+    {
+        delete chainClone;
+        chainClone = NULL;
     }
 
     return true;

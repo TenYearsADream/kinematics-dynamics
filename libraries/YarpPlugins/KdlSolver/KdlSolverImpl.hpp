@@ -23,7 +23,7 @@ class KdlSolverImpl
 {
 public:
 
-    KdlSolverImpl(const KDL::Chain & chain, KDL::ChainFkSolverPos * fkSolverPos, KDL::ChainIkSolverPos * ikSolverPos, KDL::ChainIkSolverVel * ikSolverVel, KDL::ChainIdSolver * idSolver);
+    KdlSolverImpl(KDL::Chain * chain, KDL::ChainFkSolverPos * fkSolverPos, KDL::ChainIkSolverPos * ikSolverPos, KDL::ChainIkSolverVel * ikSolverVel, KDL::ChainIdSolver * idSolver);
 
     // Get number of joints for which the solver has been configured.
     bool getNumJoints(int* numJoints);
@@ -60,7 +60,7 @@ private:
     mutable yarp::os::Semaphore mutex;
 
     /** The chain. **/
-    KDL::Chain chain;
+    KDL::Chain * chain;
 
     /** To store a copy of the original chain. **/
     KDL::Chain originalChain;
