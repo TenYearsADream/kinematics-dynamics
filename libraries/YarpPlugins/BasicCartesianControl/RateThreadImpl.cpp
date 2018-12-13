@@ -6,11 +6,59 @@
 #include <yarp/os/Time.h>
 #include <ColorDebug.h>
 
+namespace
+{
+    double epsilon = 1e-5;
+}
+
 // ------------------- RateThread Related ------------------------------------
+
+bool roboticslab::BasicCartesianControl::checkJointLimits()
+{
+    std::vector<double> currentQ(numRobotJoints);
+
+    if (!iEncoders->getEncoders(currentQ.data()))
+    {
+        CD_WARNING("getEncoders failed, unable to check joint limits.\n");
+        return false;
+    }
+
+    for (unsigned int joint = 0; joint < numRobotJoints; joint++)
+    {
+        double value = currentQ[joint];
+
+        // Report limit before reaching the actual value.
+        // https://github.com/roboticslab-uc3m/kinematics-dynamics/issues/161#issuecomment-428133287
+        if (value < qMin[joint] + epsilon || value > qMax[joint] - epsilon)
+        {
+            CD_WARNING("Joint near or out of limits: q[%d] = %f not in [%f,%f].\n", joint, value, qMin[joint], qMax[joint]);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// -----------------------------------------------------------------------------
 
 void roboticslab::BasicCartesianControl::run()
 {
-    switch (getCurrentState())
+    const int currentState = getCurrentState();
+
+    if (currentState == VOCAB_CC_NOT_CONTROLLING)
+    {
+        return;
+    }
+
+    if (!checkJointLimits())
+    {
+        CD_ERROR("checkJointLimits failed, stopping control.\n");
+        cmcSuccess = false;
+        stopControl();
+        return;
+    }
+
+    switch (currentState)
     {
     case VOCAB_CC_MOVJ_CONTROLLING:
         handleMovj();
@@ -215,9 +263,16 @@ void roboticslab::BasicCartesianControl::handleGcmp()
 
     std::vector<double> t(numRobotJoints);
 
-    iCartesianSolver->invDyn(currentQ, t);
+    if (!iCartesianSolver->invDyn(currentQ, t))
+    {
+        CD_WARNING("invDyn failed, not updating control this iteration.\n");
+        return;
+    }
 
-    iTorqueControl->setRefTorques(t.data());
+    if (!iTorqueControl->setRefTorques(t.data()))
+    {
+        CD_WARNING("setRefTorques failed, not updating control this iteration.\n");
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -246,9 +301,16 @@ void roboticslab::BasicCartesianControl::handleForc()
 
     std::vector<double> t(numRobotJoints);
 
-    iCartesianSolver->invDyn(currentQ, qdot, qdotdot, fexts, t);
+    if (!iCartesianSolver->invDyn(currentQ, qdot, qdotdot, fexts, t))
+    {
+        CD_WARNING("invDyn failed, not updating control this iteration.\n");
+        return;
+    }
 
-    iTorqueControl->setRefTorques(t.data());
+    if (!iTorqueControl->setRefTorques(t.data()))
+    {
+        CD_WARNING("setRefTorques failed, not updating control this iteration.\n");
+    }
 }
 
 // -----------------------------------------------------------------------------

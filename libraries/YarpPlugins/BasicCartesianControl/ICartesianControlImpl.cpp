@@ -388,7 +388,7 @@ void roboticslab::BasicCartesianControl::twist(const std::vector<double> &xdot)
     {
         if ( std::abs(qdot[i]) > maxJointVelocity )
         {
-            CD_ERROR("Maximum angular velocity hit at joint %d (qdot[%d] = %f > %f [deg/s]).\n", i + 1, i, qdot[i], maxJointVelocity);
+            CD_ERROR("Maximum angular velocity hit: qdot[%d] = %f > %f [deg/s].\n", i, qdot[i], maxJointVelocity);
             std::fill(qdot.begin(), qdot.end(), 0.0);
             iVelocityControl->velocityMove(qdot.data());
             return;
@@ -463,7 +463,7 @@ void roboticslab::BasicCartesianControl::pose(const std::vector<double> &x, doub
     {
         if ( std::abs(qdot[i]) > maxJointVelocity )
         {
-            CD_ERROR("Maximum angular velocity hit at joint %d (qdot[%d] = %f > %f [deg/s]).\n", i + 1, i, qdot[i], maxJointVelocity);
+            CD_ERROR("Maximum angular velocity hit: qdot[%d] = %f > %f [deg/s].\n", i, qdot[i], maxJointVelocity);
             std::fill(qdot.begin(), qdot.end(), 0.0);
             iVelocityControl->velocityMove(qdot.data());
             return;
@@ -481,6 +481,12 @@ void roboticslab::BasicCartesianControl::pose(const std::vector<double> &x, doub
 
 bool roboticslab::BasicCartesianControl::setParameter(int vocab, double value)
 {
+    if (getCurrentState() != VOCAB_CC_NOT_CONTROLLING)
+    {
+        CD_ERROR("Unable to set config parameter while controlling.\n");
+        return false;
+    }
+
     switch (vocab)
     {
     case VOCAB_CC_CONFIG_GAIN:
@@ -575,6 +581,12 @@ bool roboticslab::BasicCartesianControl::getParameter(int vocab, double * value)
 
 bool roboticslab::BasicCartesianControl::setParameters(const std::map<int, double> & params)
 {
+    if (getCurrentState() != VOCAB_CC_NOT_CONTROLLING)
+    {
+        CD_ERROR("Unable to set config parameters while controlling.\n");
+        return false;
+    }
+
     bool ok = true;
 
     for (std::map<int, double>::const_iterator it = params.begin(); it != params.end(); ++it)
