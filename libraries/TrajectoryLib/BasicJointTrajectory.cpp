@@ -66,6 +66,7 @@ bool roboticslab::BasicJointTrajectory::addWaypoint(const std::vector<double>& w
 
 bool roboticslab::BasicJointTrajectory::configurePath(const int pathType)
 {
+    configuredPath = true;
     return true;
 }
 
@@ -73,6 +74,7 @@ bool roboticslab::BasicJointTrajectory::configurePath(const int pathType)
 
 bool roboticslab::BasicJointTrajectory::configureVelocityProfile(const int velocityProfileType)
 {
+    configuredVelocityProfile = true;
     return true;
 }
 
