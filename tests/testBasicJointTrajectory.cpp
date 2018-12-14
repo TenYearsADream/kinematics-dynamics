@@ -33,20 +33,12 @@ TEST_F(BasicJointTrajectoryTest, BasicJointTrajectoryLine)
 {
     //-- Create line trajectory
     ASSERT_TRUE( iJointTrajectory->setDuration(20.0) );  // Must be high, or may be expanded due to defaults
-    std::vector<double> q(6);
+    std::vector<double> q(2);
     q[0] = 0;
     q[1] = 0;
-    q[2] = 0;
-    q[3] = 0;
-    q[4] = 0;
-    q[5] = 0;
-    std::vector<double> qd(6);
-    qd[0] = 1;
-    qd[1] = 0;
-    qd[2] = 0;
-    qd[3] = 0;
-    qd[4] = 0;
-    qd[5] = 0;
+    std::vector<double> qd(2);
+    qd[0] = 90;
+    qd[1] = 180;
     ASSERT_TRUE( iJointTrajectory->addWaypoint(q) );
     ASSERT_TRUE( iJointTrajectory->addWaypoint(qd) );
     ASSERT_TRUE( iJointTrajectory->configurePath( IJointTrajectory::LINE ) );
