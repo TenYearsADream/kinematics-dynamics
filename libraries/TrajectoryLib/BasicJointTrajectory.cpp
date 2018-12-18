@@ -53,6 +53,20 @@ bool roboticslab::BasicJointTrajectory::setDuration(const double duration)
 
 // -----------------------------------------------------------------------------
 
+bool roboticslab::BasicJointTrajectory::setMaxVelocity(double maxVelocity)
+{
+    return false;
+}
+
+// -----------------------------------------------------------------------------
+
+bool roboticslab::BasicJointTrajectory::setMaxAcceleration(double maxAcceleration)
+{
+    return false;
+}
+
+// -----------------------------------------------------------------------------
+
 bool roboticslab::BasicJointTrajectory::addWaypoint(const std::vector<double>& waypoint,
                          const std::vector<double>& waypointVelocity,
                          const std::vector<double>& waypointAcceleration)
