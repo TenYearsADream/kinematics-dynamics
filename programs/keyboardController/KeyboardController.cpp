@@ -282,7 +282,7 @@ bool roboticslab::KeyboardController::configure(yarp::os::ResourceFinder &rf)
         }
     }
 
-    issueStop(); // just in case
+    //issueStop(); // just in case
 
     ttyset();
 
